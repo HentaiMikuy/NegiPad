@@ -24,7 +24,7 @@ struct ContentView: View {
     }
 
     private var displayedApps: [AppItem] {
-        library.apps.filter { app in
+        library.orderedApps(library.apps.filter { app in
             let matchesFilter: Bool
             switch activeFilter {
             case .all:
@@ -41,7 +41,7 @@ struct ContentView: View {
             return app.name.localizedCaseInsensitiveContains(searchText)
                 || (app.bundleIdentifier?.localizedCaseInsensitiveContains(searchText) ?? false)
                 || library.category(for: app).rawValue.localizedCaseInsensitiveContains(searchText)
-        }
+        })
     }
 
     var body: some View {

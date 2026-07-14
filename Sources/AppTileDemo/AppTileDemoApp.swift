@@ -2,15 +2,26 @@ import SwiftUI
 
 @main
 struct AppTileDemoApp: App {
-    @StateObject private var library = AppLibrary()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("应用磁贴") {
-            ContentView()
-                .environmentObject(library)
-                .frame(minWidth: 820, minHeight: 560)
+        Settings {
+            EmptyView()
         }
-        .defaultSize(width: 1120, height: 760)
-        .windowStyle(.titleBar)
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("显示启动器") {
+                    appDelegate.toggleLauncher()
+                }
+                .keyboardShortcut(.space, modifiers: [.command, .shift])
+            }
+
+            CommandGroup(replacing: .appSettings) {
+                Button("应用管理…") {
+                    appDelegate.showManager()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }

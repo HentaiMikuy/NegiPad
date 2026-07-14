@@ -129,7 +129,7 @@ struct AppTileView: View {
 }
 
 @MainActor
-private final class AppIconCache {
+final class AppIconCache {
     static let shared = AppIconCache()
 
     private let cache = NSCache<NSString, NSImage>()
