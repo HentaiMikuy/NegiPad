@@ -13,7 +13,6 @@ struct AppTileDemoApp: App {
                 Button("显示启动器") {
                     appDelegate.toggleLauncher()
                 }
-                .keyboardShortcut(.space, modifiers: [.command, .shift])
             }
 
             CommandGroup(replacing: .appSettings) {

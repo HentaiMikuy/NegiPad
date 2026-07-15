@@ -17,10 +17,7 @@ struct AppTileView: View {
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
-                    Image(nsImage: AppIconCache.shared.icon(for: app.url))
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: 64, height: 64)
+                    AppIconView(app: app, size: 64)
                         .shadow(color: .black.opacity(0.15), radius: 5, y: 3)
 
                     Spacer(minLength: 8)
@@ -51,7 +48,7 @@ struct AppTileView: View {
             .frame(maxWidth: .infinity, minHeight: 158, alignment: .topLeading)
             .background {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.regularMaterial)
+                    .fill(Color(nsColor: .controlBackgroundColor))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -68,12 +65,12 @@ struct AppTileView: View {
                     .offset(y: 1)
             }
             .shadow(
-                color: .black.opacity(isHovering ? 0.14 : 0.06),
-                radius: isHovering ? 12 : 5,
-                y: isHovering ? 6 : 2
+                color: .black.opacity(isHovering ? 0.12 : 0),
+                radius: isHovering ? 10 : 0,
+                y: isHovering ? 5 : 0
             )
-            .scaleEffect(isHovering ? 1.025 : 1)
-            .animation(.snappy(duration: 0.2), value: isHovering)
+            .scaleEffect(isHovering ? 1.015 : 1)
+            .animation(.easeOut(duration: 0.14), value: isHovering)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -101,7 +98,7 @@ struct AppTileView: View {
                     library.setCategory(nil, for: app)
                 }
                 Divider()
-                ForEach(AppCategory.allCases) { destination in
+                ForEach(library.categories) { destination in
                     Button {
                         library.setCategory(destination, for: app)
                     } label: {
@@ -125,23 +122,5 @@ struct AppTileView: View {
         }
         .accessibilityLabel(app.name)
         .accessibilityHint("打开应用")
-    }
-}
-
-@MainActor
-final class AppIconCache {
-    static let shared = AppIconCache()
-
-    private let cache = NSCache<NSString, NSImage>()
-
-    func icon(for url: URL) -> NSImage {
-        let key = url.path as NSString
-        if let cached = cache.object(forKey: key) {
-            return cached
-        }
-
-        let icon = NSWorkspace.shared.icon(forFile: url.path)
-        cache.setObject(icon, forKey: key)
-        return icon
     }
 }

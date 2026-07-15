@@ -3,14 +3,15 @@ import SwiftUI
 enum LibraryFilter: Hashable {
     case all
     case favorites
-    case category(AppCategory)
+    case category(String)
+    case shortcutSettings
+}
 
-    var title: String {
-        switch self {
-        case .all: "全部应用"
-        case .favorites: "我的收藏"
-        case let .category(category): category.rawValue
-        }
+private struct CategoryEditorRequest: Identifiable {
+    let category: AppCategory?
+
+    var id: String {
+        category?.id ?? "new-category"
     }
 }
 
@@ -18,9 +19,24 @@ struct ContentView: View {
     @EnvironmentObject private var library: AppLibrary
     @State private var selection: LibraryFilter? = .all
     @State private var searchText = ""
+    @State private var categoryEditor: CategoryEditorRequest?
+    @State private var categoryPendingDeletion: AppCategory?
 
     private var activeFilter: LibraryFilter {
         selection ?? .all
+    }
+
+    private var activeTitle: String {
+        switch activeFilter {
+        case .all:
+            "全部应用"
+        case .favorites:
+            "我的收藏"
+        case let .category(categoryID):
+            library.category(withID: categoryID)?.name ?? "应用分类"
+        case .shortcutSettings:
+            "快捷键"
+        }
     }
 
     private var displayedApps: [AppItem] {
@@ -31,8 +47,10 @@ struct ContentView: View {
                 matchesFilter = true
             case .favorites:
                 matchesFilter = library.isFavorite(app)
-            case let .category(category):
-                matchesFilter = library.category(for: app) == category
+            case let .category(categoryID):
+                matchesFilter = library.category(for: app).id == categoryID
+            case .shortcutSettings:
+                matchesFilter = false
             }
 
             guard matchesFilter else { return false }
@@ -47,24 +65,35 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
+                .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
         } detail: {
-            VStack(spacing: 0) {
-                header
-                Divider()
-                appGrid
+            if activeFilter == .shortcutSettings {
+                ShortcutSettingsView()
+            } else {
+                VStack(spacing: 0) {
+                    header
+                    Divider()
+                    appGrid
+                }
+                .background(Color(nsColor: .windowBackgroundColor))
+                .searchable(
+                    text: $searchText,
+                    placement: .toolbar,
+                    prompt: "搜索应用、分类或 Bundle ID"
+                )
             }
-            .background(Color(nsColor: .windowBackgroundColor))
         }
         .navigationSplitViewStyle(.balanced)
-        .searchable(text: $searchText, placement: .toolbar, prompt: "搜索应用、分类或 Bundle ID")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    library.refresh()
-                } label: {
-                    Label("重新扫描", systemImage: "arrow.clockwise")
+            if activeFilter != .shortcutSettings {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        library.refresh()
+                    } label: {
+                        Label("重新扫描", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(library.isLoading)
                 }
-                .disabled(library.isLoading)
             }
         }
         .alert(
@@ -79,6 +108,48 @@ struct ContentView: View {
             }
         } message: {
             Text(library.lastError ?? "未知错误")
+        }
+        .alert(
+            "删除自定义分类？",
+            isPresented: Binding(
+                get: { categoryPendingDeletion != nil },
+                set: { if !$0 { categoryPendingDeletion = nil } }
+            ),
+            presenting: categoryPendingDeletion
+        ) { category in
+            Button("删除", role: .destructive) {
+                if selection == .category(category.id) {
+                    selection = .all
+                }
+                library.deleteCustomCategory(category.id)
+                categoryPendingDeletion = nil
+            }
+            Button("取消", role: .cancel) {
+                categoryPendingDeletion = nil
+            }
+        } message: { category in
+            Text("“\(category.name)”中的应用将恢复为自动分类。")
+        }
+        .sheet(item: $categoryEditor) { request in
+            CategoryEditorSheet(
+                category: request.category,
+                existingCategories: library.categories
+            ) { name, symbol in
+                if let category = request.category {
+                    if let updatedCategory = library.updateCustomCategory(
+                        category.id,
+                        name: name,
+                        symbol: symbol
+                    ) {
+                        selection = .category(updatedCategory.id)
+                    }
+                } else if let newCategory = library.createCustomCategory(
+                    name: name,
+                    symbol: symbol
+                ) {
+                    selection = .category(newCategory.id)
+                }
+            }
         }
     }
 
@@ -100,18 +171,53 @@ struct ContentView: View {
                 .tag(LibraryFilter.favorites)
             }
 
-            Section("应用分类") {
-                ForEach(AppCategory.allCases) { category in
+            Section {
+                ForEach(library.categories) { category in
                     sidebarRow(
-                        title: category.rawValue,
+                        title: category.name,
                         symbol: category.symbol,
                         count: library.apps.filter {
                             library.category(for: $0) == category
                         }.count,
                         tint: category.tint
                     )
-                    .tag(LibraryFilter.category(category))
+                    .tag(LibraryFilter.category(category.id))
+                    .contextMenu {
+                        if category.isCustom {
+                            Button {
+                                categoryEditor = CategoryEditorRequest(category: category)
+                            } label: {
+                                Label("编辑分类", systemImage: "pencil")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                categoryPendingDeletion = category
+                            } label: {
+                                Label("删除分类", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
+            } header: {
+                HStack {
+                    Text("应用分类")
+                    Spacer()
+                    Button {
+                        categoryEditor = CategoryEditorRequest(category: nil)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.plain)
+                    .help("新建分类")
+                    .accessibilityLabel("新建分类")
+                }
+            }
+
+            Section("设置") {
+                Label("快捷键", systemImage: "keyboard")
+                    .tag(LibraryFilter.shortcutSettings)
             }
         }
         .listStyle(.sidebar)
@@ -132,7 +238,7 @@ struct ContentView: View {
     private var header: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(activeFilter.title)
+                Text(activeTitle)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                 Text(headerSubtitle)
                     .font(.subheadline)
@@ -208,5 +314,134 @@ struct ContentView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct CategoryEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let category: AppCategory?
+    let existingCategories: [AppCategory]
+    let onSave: (String, String) -> Void
+
+    @State private var name: String
+    @State private var selectedSymbol: String
+
+    init(
+        category: AppCategory?,
+        existingCategories: [AppCategory],
+        onSave: @escaping (String, String) -> Void
+    ) {
+        self.category = category
+        self.existingCategories = existingCategories
+        self.onSave = onSave
+        _name = State(initialValue: category?.name ?? "")
+        _selectedSymbol = State(initialValue: category?.symbol ?? AppCategory.defaultSymbols[0])
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasDuplicateName: Bool {
+        existingCategories.contains { existingCategory in
+            existingCategory.id != category?.id
+                && existingCategory.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+        }
+    }
+
+    private var canSave: Bool {
+        !trimmedName.isEmpty && !hasDuplicateName
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(category == nil ? "新建分类" : "编辑分类")
+                .font(.title2.bold())
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("分类名称")
+                    .font(.headline)
+                TextField("例如：工作应用", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(save)
+
+                if hasDuplicateName {
+                    Text("已存在同名分类，请使用其他名称。")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("选择图标")
+                        .font(.headline)
+                    Spacer()
+                    Label(trimmedName.isEmpty ? "分类预览" : trimmedName, systemImage: selectedSymbol)
+                        .foregroundStyle(.tint)
+                }
+
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 8),
+                    spacing: 10
+                ) {
+                    ForEach(AppCategory.defaultSymbols, id: \.self) { symbol in
+                        Button {
+                            selectedSymbol = symbol
+                        } label: {
+                            Image(systemName: symbol)
+                                .font(.system(size: 17, weight: .medium))
+                                .frame(width: 38, height: 38)
+                                .foregroundStyle(selectedSymbol == symbol ? Color.white : Color.primary)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                        .fill(
+                                            selectedSymbol == symbol
+                                                ? Color.accentColor
+                                                : Color(nsColor: .controlBackgroundColor)
+                                        )
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                        .stroke(
+                                            selectedSymbol == symbol
+                                                ? Color.accentColor
+                                                : Color.secondary.opacity(0.2),
+                                            lineWidth: 1
+                                        )
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .help(symbol)
+                        .accessibilityLabel("选择图标 \(symbol)")
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("取消") {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button(category == nil ? "创建" : "保存") {
+                    save()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!canSave)
+            }
+        }
+        .padding(24)
+        .frame(width: 480, height: 390)
+    }
+
+    private func save() {
+        guard canSave else { return }
+        onSave(trimmedName, selectedSymbol)
+        dismiss()
     }
 }

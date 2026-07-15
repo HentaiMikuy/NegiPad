@@ -4,13 +4,33 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let library = AppLibrary()
+    let launcherSession = LauncherSession()
+    let shortcutSettings = ShortcutSettings()
 
+    private let launcherSize = NSSize(width: 760, height: 560)
     private var launcherPanel: LauncherPanel?
-    private var launcherHostingController: NSHostingController<AnyView>?
     private var managerWindow: NSWindow?
+    private var iconRefreshTask: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        let workspaceNotifications = NSWorkspace.shared.notificationCenter
+        workspaceNotifications.addObserver(
+            self,
+            selector: #selector(workspaceDidWake(_:)),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+        workspaceNotifications.addObserver(
+            self,
+            selector: #selector(workspaceDidWake(_:)),
+            name: NSWorkspace.screensDidWakeNotification,
+            object: nil
+        )
+
+        shortcutSettings.activate { [weak self] in
+            self?.toggleLauncher()
+        }
 
         DispatchQueue.main.async { [weak self] in
             self?.showLauncher()
@@ -29,6 +49,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        iconRefreshTask?.cancel()
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+    }
+
     @objc func toggleLauncher() {
         if launcherPanel?.isVisible == true {
             hideLauncher()
@@ -42,12 +67,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             createLauncherPanel()
         }
 
-        guard let launcherPanel, let launcherHostingController else { return }
+        guard let launcherPanel else { return }
 
-        launcherHostingController.rootView = makeLauncherRootView()
+        NSApp.activate(ignoringOtherApps: true)
+        launcherPanel.setContentSize(launcherSize)
+        launcherPanel.contentView?.layoutSubtreeIfNeeded()
+        launcherSession.beginPresentation()
         positionLauncher(launcherPanel)
         launcherPanel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+
+        // NSHostingController completes its initial sizing on the next run-loop
+        // pass. Reapply the final size and position so the very first
+        // presentation cannot be displaced by that deferred layout.
+        DispatchQueue.main.async { [weak self, weak launcherPanel] in
+            guard let self,
+                  let launcherPanel,
+                  launcherPanel.isVisible else {
+                return
+            }
+
+            launcherPanel.setContentSize(self.launcherSize)
+            launcherPanel.contentView?.layoutSubtreeIfNeeded()
+            self.positionLauncher(launcherPanel)
+        }
     }
 
     @objc func hideLauncher() {
@@ -66,9 +108,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    @objc private func workspaceDidWake(_ notification: Notification) {
+        iconRefreshTask?.cancel()
+        iconRefreshTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+
+            await AppIconLoader.shared.removeAll()
+            SystemAppIconCache.shared.removeAll()
+            NotificationCenter.default.post(name: .appIconsShouldReload, object: nil)
+        }
+    }
+
     private func createLauncherPanel() {
         let panel = LauncherPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
+            contentRect: NSRect(origin: .zero, size: launcherSize),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -91,12 +145,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ]
 
         launcherPanel = panel
-        launcherHostingController = hostingController
     }
 
     private func createManagerWindow() {
         let rootView = ContentView()
             .environmentObject(library)
+            .environmentObject(shortcutSettings)
             .frame(minWidth: 820, minHeight: 560)
 
         let window = NSWindow(
@@ -130,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             )
             .environmentObject(library)
+            .environmentObject(launcherSession)
         )
     }
 
@@ -139,17 +194,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSMouseInRect(mouseLocation, $0.frame, false)
         } ?? NSScreen.main
 
-        guard let visibleFrame = targetScreen?.visibleFrame else {
+        guard let screenFrame = targetScreen?.frame else {
             panel.center()
             return
         }
 
-        let panelSize = panel.frame.size
-        let origin = NSPoint(
-            x: visibleFrame.midX - panelSize.width / 2,
-            y: visibleFrame.midY - panelSize.height / 2 + 44
+        let frame = NSRect(
+            x: (screenFrame.midX - launcherSize.width / 2).rounded(),
+            y: (screenFrame.midY - launcherSize.height / 2).rounded(),
+            width: launcherSize.width,
+            height: launcherSize.height
         )
-        panel.setFrameOrigin(origin)
+        panel.setFrame(frame, display: panel.isVisible, animate: false)
+    }
+}
+
+@MainActor
+final class LauncherSession: ObservableObject {
+    @Published private(set) var presentationID = 0
+
+    func beginPresentation() {
+        presentationID &+= 1
     }
 }
 

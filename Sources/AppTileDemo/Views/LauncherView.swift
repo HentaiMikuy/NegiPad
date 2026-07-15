@@ -5,6 +5,7 @@ struct LauncherView: View {
     private let columnCount = 7
 
     @EnvironmentObject private var library: AppLibrary
+    @EnvironmentObject private var launcherSession: LauncherSession
     @FocusState private var searchIsFocused: Bool
 
     @State private var searchText = ""
@@ -18,17 +19,7 @@ struct LauncherView: View {
     let onOpenManager: () -> Void
 
     private var items: [LauncherItem] {
-        guard !searchText.isEmpty else {
-            return library.launcherItems()
-        }
-
-        let matchingApps = library.apps.filter { app in
-            app.name.localizedCaseInsensitiveContains(searchText)
-                || (app.bundleIdentifier?.localizedCaseInsensitiveContains(searchText) ?? false)
-                || library.category(for: app).rawValue.localizedCaseInsensitiveContains(searchText)
-        }
-
-        return library.orderedApps(matchingApps).map(LauncherItem.app)
+        library.launcherItems(matching: searchText)
     }
 
     private var itemIDs: [LauncherItem.ID] {
@@ -58,6 +49,13 @@ struct LauncherView: View {
                     onRename: { name in
                         library.renameFolder(folder.id, to: name)
                     },
+                    onRemove: { appID in
+                        guard library.removeApp(appID, fromFolder: folder.id) else {
+                            return
+                        }
+                        selectedID = appID
+                        closeFolder()
+                    },
                     onLaunch: launch,
                     onClose: {
                         closeFolder()
@@ -75,10 +73,10 @@ struct LauncherView: View {
         }
         .shadow(color: .black.opacity(0.28), radius: 30, y: 16)
         .onAppear {
-            selectedID = items.first?.id
-            DispatchQueue.main.async {
-                searchIsFocused = true
-            }
+            prepareForPresentation()
+        }
+        .onChange(of: launcherSession.presentationID) {
+            prepareForPresentation()
         }
         .onChange(of: itemIDs) { _, newIDs in
             if let selectedID, newIDs.contains(selectedID) {
@@ -373,6 +371,19 @@ struct LauncherView: View {
         library.launch(app)
         onDismiss()
     }
+
+    private func prepareForPresentation() {
+        searchText = ""
+        selectedID = library.launcherItems().first?.id
+        draggedID = nil
+        folderDropTargetID = nil
+        edgeDropTargetID = nil
+        openFolderID = nil
+
+        DispatchQueue.main.async {
+            searchIsFocused = true
+        }
+    }
 }
 
 private struct LauncherGridTile: View {
@@ -388,10 +399,7 @@ private struct LauncherGridTile: View {
     var body: some View {
         Button(action: onLaunch) {
             VStack(spacing: 6) {
-                Image(nsImage: AppIconCache.shared.icon(for: app.url))
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 48, height: 48)
+                AppIconView(app: app, size: 48)
                     .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
 
                 Text(app.name)
@@ -484,11 +492,8 @@ private struct LauncherFolderTile: View {
                     ],
                     spacing: 3
                 ) {
-                    ForEach(Array(apps.prefix(4))) { app in
-                        Image(nsImage: AppIconCache.shared.icon(for: app.url))
-                            .resizable()
-                            .interpolation(.high)
-                            .frame(width: 22, height: 22)
+                    ForEach(apps.prefix(4)) { app in
+                        AppIconView(app: app, size: 22)
                     }
                 }
                 .padding(5)
@@ -534,10 +539,13 @@ private struct FolderOverlay: View {
     @FocusState private var folderNameIsFocused: Bool
     @State private var folderName: String
     @State private var isEditingName = false
+    @State private var draggedAppID: String?
+    @State private var isExitDropTarget = false
 
     let folder: AppFolder
     let apps: [AppItem]
     let onRename: (String) -> Void
+    let onRemove: (String) -> Void
     let onLaunch: (AppItem) -> Void
     let onClose: () -> Void
 
@@ -545,12 +553,14 @@ private struct FolderOverlay: View {
         folder: AppFolder,
         apps: [AppItem],
         onRename: @escaping (String) -> Void,
+        onRemove: @escaping (String) -> Void,
         onLaunch: @escaping (AppItem) -> Void,
         onClose: @escaping () -> Void
     ) {
         self.folder = folder
         self.apps = apps
         self.onRename = onRename
+        self.onRemove = onRemove
         self.onLaunch = onLaunch
         self.onClose = onClose
         _folderName = State(initialValue: folder.name)
@@ -610,10 +620,7 @@ private struct FolderOverlay: View {
                                 onLaunch(app)
                             } label: {
                                 VStack(spacing: 7) {
-                                    Image(nsImage: AppIconCache.shared.icon(for: app.url))
-                                        .resizable()
-                                        .interpolation(.high)
-                                        .frame(width: 48, height: 48)
+                                    AppIconView(app: app, size: 48)
                                     Text(app.name)
                                         .font(.caption)
                                         .lineLimit(1)
@@ -622,6 +629,10 @@ private struct FolderOverlay: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .onDrag {
+                                draggedAppID = app.id
+                                return NSItemProvider(object: app.id as NSString)
+                            }
                         }
                     }
                 }
@@ -634,7 +645,35 @@ private struct FolderOverlay: View {
                     .stroke(.white.opacity(0.18), lineWidth: 1)
             }
             .shadow(color: .black.opacity(0.3), radius: 24, y: 12)
+
+            if draggedAppID != nil {
+                VStack {
+                    Spacer()
+                    Label(
+                        isExitDropTarget ? "松开以移出文件夹" : "拖到文件夹外",
+                        systemImage: isExitDropTarget
+                            ? "arrow.up.forward.app.fill"
+                            : "arrow.up.forward.app"
+                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isExitDropTarget ? Color.accentColor : .secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 24)
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
         }
+        .onDrop(
+            of: [UTType.text],
+            delegate: FolderExitDropDelegate(
+                draggedAppID: $draggedAppID,
+                isExitDropTarget: $isExitDropTarget,
+                removeFromFolder: onRemove
+            )
+        )
         .onChange(of: folderNameIsFocused) { _, isFocused in
             if !isFocused && isEditingName {
                 finishEditingName()
@@ -664,6 +703,44 @@ private struct FolderOverlay: View {
         isEditingName = false
         folderNameIsFocused = false
         onRename(folderName)
+    }
+}
+
+private struct FolderExitDropDelegate: DropDelegate {
+    private let folderFrame = CGRect(x: 95, y: 105, width: 570, height: 350)
+
+    @Binding var draggedAppID: String?
+    @Binding var isExitDropTarget: Bool
+    let removeFromFolder: (String) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggedAppID != nil
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        let isOutsideFolder = !folderFrame.contains(info.location)
+        isExitDropTarget = isOutsideFolder
+        return DropProposal(operation: isOutsideFolder ? .move : .forbidden)
+    }
+
+    func dropExited(info: DropInfo) {
+        draggedAppID = nil
+        isExitDropTarget = false
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        defer {
+            draggedAppID = nil
+            isExitDropTarget = false
+        }
+
+        guard let draggedAppID,
+              !folderFrame.contains(info.location) else {
+            return false
+        }
+
+        removeFromFolder(draggedAppID)
+        return true
     }
 }
 
