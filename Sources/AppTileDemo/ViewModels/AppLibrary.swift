@@ -7,16 +7,28 @@ final class AppLibrary: ObservableObject {
     @Published private(set) var apps: [AppItem] = []
     @Published private(set) var favoriteIDs = Set<String>()
     @Published private(set) var categoryOverrides: [String: AppCategory] = [:]
+    @Published private(set) var customCategories: [AppCategory] = []
     @Published private(set) var appOrder: [String] = []
     @Published private(set) var folders: [AppFolder] = []
     @Published private(set) var isLoading = false
     @Published var lastError: String?
 
     private let preferencesKey = "AppTileDemo.Preferences"
+    private var appsByID: [String: AppItem] = [:]
+    private var orderIndex: [String: Int] = [:]
+    private var foldersByID: [String: AppFolder] = [:]
+    private var folderByAppID: [String: AppFolder] = [:]
+    private var cachedLauncherItems: [LauncherItem] = []
+    private var cachedSearchQuery: String?
+    private var cachedSearchItems: [LauncherItem] = []
 
     init() {
         loadPreferences()
         refresh()
+    }
+
+    var categories: [AppCategory] {
+        AppCategory.builtInCategories + customCategories
     }
 
     func refresh() {
@@ -32,7 +44,9 @@ final class AppLibrary: ObservableObject {
             let previousFolders = folders
             apps = result
             reconcileOrder(with: result)
+            rebuildOrderIndex()
             reconcileFolders(with: result)
+            rebuildDerivedData()
             if appOrder != previousOrder || folders != previousFolders {
                 savePreferences()
             }
@@ -41,7 +55,14 @@ final class AppLibrary: ObservableObject {
     }
 
     func category(for app: AppItem) -> AppCategory {
-        categoryOverrides[app.id] ?? app.automaticCategory
+        guard let override = categoryOverrides[app.id] else {
+            return app.automaticCategory
+        }
+        return category(withID: override.id) ?? app.automaticCategory
+    }
+
+    func category(withID id: String) -> AppCategory? {
+        categories.first { $0.id == id }
     }
 
     func isFavorite(_ app: AppItem) -> Bool {
@@ -59,15 +80,68 @@ final class AppLibrary: ObservableObject {
 
     func setCategory(_ category: AppCategory?, for app: AppItem) {
         categoryOverrides[app.id] = category
+        invalidateSearchCache()
+        savePreferences()
+    }
+
+    func isCategoryNameAvailable(_ name: String, excluding categoryID: String? = nil) -> Bool {
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty else { return false }
+
+        return !categories.contains { category in
+            category.id != categoryID
+                && category.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame
+        }
+    }
+
+    @discardableResult
+    func createCustomCategory(name: String, symbol: String) -> AppCategory? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isCategoryNameAvailable(trimmedName) else { return nil }
+
+        let category = AppCategory.custom(name: trimmedName, symbol: symbol)
+        customCategories.append(category)
+        invalidateSearchCache()
+        savePreferences()
+        return category
+    }
+
+    @discardableResult
+    func updateCustomCategory(_ categoryID: String, name: String, symbol: String) -> AppCategory? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = customCategories.firstIndex(where: { $0.id == categoryID }),
+              isCategoryNameAvailable(trimmedName, excluding: categoryID) else {
+            return nil
+        }
+
+        let updatedCategory = customCategories[index].updating(
+            name: trimmedName,
+            symbol: symbol
+        )
+        customCategories[index] = updatedCategory
+
+        let affectedAppIDs = categoryOverrides.compactMap { appID, category in
+            category.id == categoryID ? appID : nil
+        }
+        for appID in affectedAppIDs {
+            categoryOverrides[appID] = updatedCategory
+        }
+
+        invalidateSearchCache()
+        savePreferences()
+        return updatedCategory
+    }
+
+    func deleteCustomCategory(_ categoryID: String) {
+        guard customCategories.contains(where: { $0.id == categoryID }) else { return }
+
+        customCategories.removeAll { $0.id == categoryID }
+        categoryOverrides = categoryOverrides.filter { $0.value.id != categoryID }
+        invalidateSearchCache()
         savePreferences()
     }
 
     func orderedApps(_ source: [AppItem]) -> [AppItem] {
-        var orderIndex: [String: Int] = [:]
-        for (index, id) in appOrder.enumerated() where orderIndex[id] == nil {
-            orderIndex[id] = index
-        }
-
         return source.sorted { lhs, rhs in
             let lhsIndex = orderIndex[lhs.id] ?? Int.max
             let rhsIndex = orderIndex[rhs.id] ?? Int.max
@@ -81,52 +155,51 @@ final class AppLibrary: ObservableObject {
     }
 
     func launcherItems() -> [LauncherItem] {
-        let ordered = orderedApps(apps)
-        let appsByID = Dictionary(uniqueKeysWithValues: apps.map { ($0.id, $0) })
-        var folderByAppID: [String: AppFolder] = [:]
+        cachedLauncherItems
+    }
 
-        for folder in folders {
-            for appID in folder.appIDs {
-                folderByAppID[appID] = folder
-            }
+    func launcherItems(matching query: String) -> [LauncherItem] {
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedQuery.isEmpty else { return cachedLauncherItems }
+
+        if cachedSearchQuery == normalizedQuery {
+            return cachedSearchItems
         }
 
-        var emittedFolderIDs = Set<String>()
-        var items: [LauncherItem] = []
-
-        for app in ordered {
-            guard let folder = folderByAppID[app.id] else {
-                items.append(.app(app))
-                continue
-            }
-
-            guard emittedFolderIDs.insert(folder.id).inserted else { continue }
-            let members = folder.appIDs.compactMap { appsByID[$0] }
-            items.append(.folder(folder, members))
+        let matchingApps = apps.filter { app in
+            app.name.localizedCaseInsensitiveContains(normalizedQuery)
+                || (app.bundleIdentifier?.localizedCaseInsensitiveContains(normalizedQuery) ?? false)
+                || category(for: app).rawValue.localizedCaseInsensitiveContains(normalizedQuery)
         }
+        let items = orderedApps(matchingApps).map(LauncherItem.app)
 
+        cachedSearchQuery = normalizedQuery
+        cachedSearchItems = items
         return items
     }
 
     func folder(withID id: String) -> AppFolder? {
-        folders.first { $0.id == id }
+        foldersByID[id]
     }
 
     func apps(in folder: AppFolder) -> [AppItem] {
-        let appsByID = Dictionary(uniqueKeysWithValues: apps.map { ($0.id, $0) })
         return folder.appIDs.compactMap { appsByID[$0] }
     }
 
     @discardableResult
     func createFolder(containing draggedID: String, and targetID: String) -> String? {
         guard draggedID != targetID,
-              let draggedApp = apps.first(where: { $0.id == draggedID }),
-              let targetApp = apps.first(where: { $0.id == targetID }) else {
+              let draggedApp = appsByID[draggedID],
+              let targetApp = appsByID[targetID] else {
             return nil
         }
 
-        let draggedFolderIndex = folders.firstIndex { $0.appIDs.contains(draggedID) }
-        let targetFolderIndex = folders.firstIndex { $0.appIDs.contains(targetID) }
+        let draggedFolderIndex = folderByAppID[draggedID].flatMap { draggedFolder in
+            folders.firstIndex { $0.id == draggedFolder.id }
+        }
+        let targetFolderIndex = folderByAppID[targetID].flatMap { targetFolder in
+            folders.firstIndex { $0.id == targetFolder.id }
+        }
 
         if let targetFolderIndex {
             let folderID = folders[targetFolderIndex].id
@@ -148,6 +221,7 @@ final class AppLibrary: ObservableObject {
         let folder = AppFolder(name: category, appIDs: orderedIDs)
 
         folders.append(folder)
+        rebuildDerivedData()
         savePreferences()
         return folder.id
     }
@@ -175,13 +249,34 @@ final class AppLibrary: ObservableObject {
 
         folders[updatedFolderIndex].appIDs.append(appID)
         folders[updatedFolderIndex].appIDs.sort(by: comesBeforeInAppOrder)
+        rebuildDerivedData()
         savePreferences()
+    }
+
+    @discardableResult
+    func removeApp(_ appID: String, fromFolder folderID: String) -> Bool {
+        guard let folderIndex = folders.firstIndex(where: { $0.id == folderID }),
+              folders[folderIndex].appIDs.contains(appID) else {
+            return false
+        }
+
+        folders[folderIndex].appIDs.removeAll { $0 == appID }
+        if folders[folderIndex].appIDs.count < 2 {
+            folders.remove(at: folderIndex)
+        } else {
+            folders[folderIndex].appIDs.sort(by: comesBeforeInAppOrder)
+        }
+
+        rebuildDerivedData()
+        savePreferences()
+        return true
     }
 
     func renameFolder(_ folderID: String, to name: String) {
         guard let index = folders.firstIndex(where: { $0.id == folderID }) else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         folders[index].name = trimmedName.isEmpty ? "应用文件夹" : trimmedName
+        rebuildDerivedData()
         savePreferences()
     }
 
@@ -220,6 +315,7 @@ final class AppLibrary: ObservableObject {
         newOrder.insert(movedID, at: insertionIndex)
 
         appOrder = newOrder
+        rebuildDerivedData()
         if save {
             savePreferences()
         }
@@ -252,14 +348,17 @@ final class AppLibrary: ObservableObject {
 
         favoriteIDs = preferences.favoriteIDs
         categoryOverrides = preferences.categoryOverrides
+        customCategories = preferences.customCategories ?? []
         appOrder = preferences.appOrder ?? []
         folders = preferences.folders ?? []
+        rebuildDerivedData()
     }
 
     private func savePreferences() {
         let preferences = Preferences(
             favoriteIDs: favoriteIDs,
             categoryOverrides: categoryOverrides,
+            customCategories: customCategories,
             appOrder: appOrder,
             folders: folders
         )
@@ -296,15 +395,53 @@ final class AppLibrary: ObservableObject {
     }
 
     private func comesBeforeInAppOrder(_ lhs: String, _ rhs: String) -> Bool {
-        let lhsIndex = appOrder.firstIndex(of: lhs) ?? Int.max
-        let rhsIndex = appOrder.firstIndex(of: rhs) ?? Int.max
+        let lhsIndex = orderIndex[lhs] ?? Int.max
+        let rhsIndex = orderIndex[rhs] ?? Int.max
         return lhsIndex < rhsIndex
+    }
+
+    private func rebuildDerivedData() {
+        rebuildOrderIndex()
+        appsByID = Dictionary(uniqueKeysWithValues: apps.map { ($0.id, $0) })
+        foldersByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0) })
+        folderByAppID.removeAll(keepingCapacity: true)
+
+        for folder in folders {
+            for appID in folder.appIDs {
+                folderByAppID[appID] = folder
+            }
+        }
+
+        var emittedFolderIDs = Set<String>()
+        cachedLauncherItems = orderedApps(apps).compactMap { app in
+            guard let folder = folderByAppID[app.id] else {
+                return .app(app)
+            }
+
+            guard emittedFolderIDs.insert(folder.id).inserted else { return nil }
+            let members = folder.appIDs.compactMap { appsByID[$0] }
+            return .folder(folder, members)
+        }
+        invalidateSearchCache()
+    }
+
+    private func rebuildOrderIndex() {
+        orderIndex.removeAll(keepingCapacity: true)
+        for (index, id) in appOrder.enumerated() where orderIndex[id] == nil {
+            orderIndex[id] = index
+        }
+    }
+
+    private func invalidateSearchCache() {
+        cachedSearchQuery = nil
+        cachedSearchItems.removeAll(keepingCapacity: true)
     }
 }
 
 private struct Preferences: Codable {
     let favoriteIDs: Set<String>
     let categoryOverrides: [String: AppCategory]
+    let customCategories: [AppCategory]?
     let appOrder: [String]?
     let folders: [AppFolder]?
 }
