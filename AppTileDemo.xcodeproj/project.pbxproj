@@ -17,6 +17,10 @@
 		A00000000000000000000027 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* AppDelegate.swift */; };
 		A00000000000000000000028 /* LauncherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* LauncherView.swift */; };
 		A00000000000000000000029 /* AppFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* AppFolder.swift */; };
+		A0000000000000000000002A /* AppIconLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* AppIconLoader.swift */; };
+		A0000000000000000000002B /* AppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* AppIconView.swift */; };
+		A0000000000000000000002C /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* GlobalShortcutManager.swift */; };
+		A0000000000000000000002D /* ShortcutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* ShortcutSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +35,10 @@
 		A00000000000000000000017 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A00000000000000000000018 /* LauncherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherView.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* AppFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFolder.swift; sourceTree = "<group>"; };
+		A0000000000000000000001A /* AppIconLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconLoader.swift; sourceTree = "<group>"; };
+		A0000000000000000000001B /* AppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconView.swift; sourceTree = "<group>"; };
+		A0000000000000000000001C /* GlobalShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalShortcutManager.swift; sourceTree = "<group>"; };
+		A0000000000000000000001D /* ShortcutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +96,8 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000013 /* AppScanner.swift */,
+				A0000000000000000000001A /* AppIconLoader.swift */,
+				A0000000000000000000001C /* GlobalShortcutManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -106,6 +116,8 @@
 				A00000000000000000000015 /* AppTileView.swift */,
 				A00000000000000000000016 /* ContentView.swift */,
 				A00000000000000000000018 /* LauncherView.swift */,
+				A0000000000000000000001B /* AppIconView.swift */,
+				A0000000000000000000001D /* ShortcutSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -189,6 +201,10 @@
 				A00000000000000000000027 /* AppDelegate.swift in Sources */,
 				A00000000000000000000028 /* LauncherView.swift in Sources */,
 				A00000000000000000000029 /* AppFolder.swift in Sources */,
+				A0000000000000000000002A /* AppIconLoader.swift in Sources */,
+				A0000000000000000000002B /* AppIconView.swift in Sources */,
+				A0000000000000000000002C /* GlobalShortcutManager.swift in Sources */,
+				A0000000000000000000002D /* ShortcutSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

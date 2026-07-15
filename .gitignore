@@ -2,6 +2,7 @@
 .build/
 .swiftpm/
 .xcode-build/
+.xcode-build-release/
 DerivedData/
 xcuserdata/
 *.xcuserstate
