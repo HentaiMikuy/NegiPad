@@ -1,41 +1,116 @@
 import SwiftUI
 
-enum AppCategory: String, CaseIterable, Codable, Identifiable, Sendable {
-    case productivity = "效率办公"
-    case development = "开发工具"
-    case creativity = "创意设计"
-    case entertainment = "影音娱乐"
-    case learning = "学习阅读"
-    case lifestyle = "生活社交"
-    case utilities = "系统工具"
-    case other = "其他应用"
+struct AppCategory: Identifiable, Codable, Hashable, Sendable {
+    let id: String
+    let name: String
+    let symbol: String
 
-    var id: String { rawValue }
+    var rawValue: String { name }
+    var isCustom: Bool { id.hasPrefix("custom:") }
 
-    var symbol: String {
-        switch self {
-        case .productivity: "checkmark.circle"
-        case .development: "hammer"
-        case .creativity: "paintpalette"
-        case .entertainment: "play.rectangle"
-        case .learning: "books.vertical"
-        case .lifestyle: "person.2"
-        case .utilities: "wrench.and.screwdriver"
-        case .other: "square.grid.2x2"
+    var tint: Color {
+        switch id {
+        case Self.productivity.id: .blue
+        case Self.development.id: .indigo
+        case Self.creativity.id: .pink
+        case Self.entertainment.id: .orange
+        case Self.learning.id: .green
+        case Self.lifestyle.id: .cyan
+        case Self.utilities.id: .purple
+        case Self.other.id: .gray
+        default: .accentColor
         }
     }
 
-    var tint: Color {
-        switch self {
-        case .productivity: .blue
-        case .development: .indigo
-        case .creativity: .pink
-        case .entertainment: .orange
-        case .learning: .green
-        case .lifestyle: .cyan
-        case .utilities: .purple
-        case .other: .gray
-        }
+    static let productivity = AppCategory(
+        id: "builtin:productivity",
+        name: "效率办公",
+        symbol: "checkmark.circle"
+    )
+    static let development = AppCategory(
+        id: "builtin:development",
+        name: "开发工具",
+        symbol: "hammer"
+    )
+    static let creativity = AppCategory(
+        id: "builtin:creativity",
+        name: "创意设计",
+        symbol: "paintpalette"
+    )
+    static let entertainment = AppCategory(
+        id: "builtin:entertainment",
+        name: "影音娱乐",
+        symbol: "play.rectangle"
+    )
+    static let learning = AppCategory(
+        id: "builtin:learning",
+        name: "学习阅读",
+        symbol: "books.vertical"
+    )
+    static let lifestyle = AppCategory(
+        id: "builtin:lifestyle",
+        name: "生活社交",
+        symbol: "person.2"
+    )
+    static let utilities = AppCategory(
+        id: "builtin:utilities",
+        name: "系统工具",
+        symbol: "wrench.and.screwdriver"
+    )
+    static let other = AppCategory(
+        id: "builtin:other",
+        name: "其他应用",
+        symbol: "square.grid.2x2"
+    )
+
+    static let builtInCategories = [
+        productivity,
+        development,
+        creativity,
+        entertainment,
+        learning,
+        lifestyle,
+        utilities,
+        other
+    ]
+
+    static let defaultSymbols = [
+        "tag",
+        "folder",
+        "briefcase",
+        "building.2",
+        "house",
+        "cart",
+        "gamecontroller",
+        "music.note",
+        "film",
+        "camera",
+        "paintpalette",
+        "hammer",
+        "terminal",
+        "books.vertical",
+        "graduationcap",
+        "heart",
+        "figure.run",
+        "airplane",
+        "globe",
+        "leaf",
+        "fork.knife",
+        "cup.and.saucer",
+        "wrench.and.screwdriver",
+        "star"
+    ]
+
+    static func custom(name: String, symbol: String) -> AppCategory {
+        AppCategory(
+            id: "custom:\(UUID().uuidString)",
+            name: name,
+            symbol: symbol
+        )
+    }
+
+    func updating(name: String, symbol: String) -> AppCategory {
+        AppCategory(id: id, name: name, symbol: symbol)
     }
 
     static func infer(from rawCategory: String?, appName: String) -> AppCategory {
@@ -87,5 +162,51 @@ enum AppCategory: String, CaseIterable, Codable, Identifiable, Sendable {
         }
 
         return .other
+    }
+
+    static func == (lhs: AppCategory, rhs: AppCategory) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case symbol
+    }
+
+    init(id: String, name: String, symbol: String) {
+        self.id = id
+        self.name = name
+        self.symbol = symbol
+    }
+
+    init(from decoder: Decoder) throws {
+        if let singleValue = try? decoder.singleValueContainer(),
+           let legacyName = try? singleValue.decode(String.self) {
+            self = Self.builtInCategories.first {
+                $0.name == legacyName || $0.id == legacyName
+            } ?? AppCategory(
+                id: "custom:legacy:\(legacyName)",
+                name: legacyName,
+                symbol: "tag"
+            )
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "tag"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(symbol, forKey: .symbol)
     }
 }

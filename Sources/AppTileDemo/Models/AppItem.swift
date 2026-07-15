@@ -6,5 +6,6 @@ struct AppItem: Identifiable, Hashable, Sendable {
     let name: String
     let bundleIdentifier: String?
     let version: String?
+    let iconURL: URL?
     let automaticCategory: AppCategory
 }

@@ -40,6 +40,11 @@ enum AppScanner {
                 let rawCategory = info["LSApplicationCategoryType"] as? String
                 let version = (info["CFBundleShortVersionString"] as? String)
                     ?? (info["CFBundleVersion"] as? String)
+                let iconURL = appIconURL(
+                    info: info,
+                    appURL: canonicalURL,
+                    fileManager: fileManager
+                )
 
                 applications.append(
                     AppItem(
@@ -48,6 +53,7 @@ enum AppScanner {
                         name: name,
                         bundleIdentifier: bundle?.bundleIdentifier,
                         version: version,
+                        iconURL: iconURL,
                         automaticCategory: AppCategory.infer(
                             from: rawCategory,
                             appName: name
@@ -60,5 +66,51 @@ enum AppScanner {
         return applications.sorted {
             $0.name.localizedStandardCompare($1.name) == .orderedAscending
         }
+    }
+
+    private static func appIconURL(
+        info: [String: Any],
+        appURL: URL,
+        fileManager: FileManager
+    ) -> URL? {
+        let resourcesURL = appURL
+            .appendingPathComponent("Contents", isDirectory: true)
+            .appendingPathComponent("Resources", isDirectory: true)
+        let declaredNames = [
+            info["CFBundleIconFile"] as? String,
+            info["CFBundleIconName"] as? String
+        ].compactMap { $0 }
+
+        for declaredName in declaredNames {
+            let names = URL(fileURLWithPath: declaredName).pathExtension.isEmpty
+                ? [declaredName, "\(declaredName).icns"]
+                : [declaredName]
+
+            for name in names {
+                let candidate = resourcesURL.appendingPathComponent(name)
+                var isDirectory: ObjCBool = false
+                if fileManager.fileExists(
+                    atPath: candidate.path,
+                    isDirectory: &isDirectory
+                ), !isDirectory.boolValue {
+                    return candidate
+                }
+            }
+        }
+
+        let fallbackIcons = (try? fileManager.contentsOfDirectory(
+            at: resourcesURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ))?.filter { url in
+            guard url.pathExtension.lowercased() == "icns" else { return false }
+            let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
+            return values?.isRegularFile == true
+        } ?? []
+
+        return fallbackIcons.first { iconURL in
+            let name = iconURL.deletingPathExtension().lastPathComponent.lowercased()
+            return name == "appicon" || name == "app" || name == "icon"
+        } ?? fallbackIcons.first
     }
 }
