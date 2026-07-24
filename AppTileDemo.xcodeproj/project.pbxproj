@@ -31,6 +31,8 @@
 		B00000000000000000000025 /* CalculatorEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* CalculatorEngine.swift */; };
 		B00000000000000000000026 /* ToolboxSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* ToolboxSettings.swift */; };
 		B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* ToolboxSettingsView.swift */; };
+		B00000000000000000000028 /* SearchKeywordGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* SearchKeywordGroup.swift */; };
+		B00000000000000000000029 /* KeywordSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* KeywordSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +61,8 @@
 		B00000000000000000000015 /* CalculatorEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorEngine.swift; sourceTree = "<group>"; };
 		B00000000000000000000016 /* ToolboxSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolboxSettings.swift; sourceTree = "<group>"; };
 		B00000000000000000000017 /* ToolboxSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolboxSettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* SearchKeywordGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeywordGroup.swift; sourceTree = "<group>"; };
+		B00000000000000000000019 /* KeywordSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +113,7 @@
 				A00000000000000000000012 /* AppItem.swift */,
 				A00000000000000000000019 /* AppFolder.swift */,
 				B00000000000000000000013 /* AppUsage.swift */,
+				B00000000000000000000018 /* SearchKeywordGroup.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -148,6 +153,7 @@
 				B00000000000000000000011 /* GeneralSettingsView.swift */,
 				B00000000000000000000012 /* FolderManagerView.swift */,
 				B00000000000000000000017 /* ToolboxSettingsView.swift */,
+				B00000000000000000000019 /* KeywordSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -245,6 +251,8 @@
 				B00000000000000000000025 /* CalculatorEngine.swift in Sources */,
 				B00000000000000000000026 /* ToolboxSettings.swift in Sources */,
 				B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */,
+				B00000000000000000000028 /* SearchKeywordGroup.swift in Sources */,
+				B00000000000000000000029 /* KeywordSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

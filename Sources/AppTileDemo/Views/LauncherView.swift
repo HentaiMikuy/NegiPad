@@ -145,7 +145,11 @@ struct LauncherView: View {
                     )
                     Divider().opacity(0.7)
                 }
-                if showsRecentlyInstalledRow {
+                // The pager has no vertical scrolling, so it keeps the strip
+                // pinned here as a header; in vertical-scroll mode the strip
+                // lives inside the scroll view and scrolls away with the grid.
+                if showsRecentlyInstalledRow
+                    && launcherSettings.browsingMode == .horizontalPaging {
                     recentlyInstalledRow
                     Divider().opacity(0.7)
                 }
@@ -283,7 +287,7 @@ struct LauncherView: View {
                 .font(.system(size: 20, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            TextField("搜索应用、拼音或别名…", text: $searchText)
+            TextField("搜索应用、拼音、别名或关键字…", text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 22, weight: .medium, design: .rounded))
                 .focused($searchIsFocused)
@@ -374,16 +378,25 @@ struct LauncherView: View {
         GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVGrid(
-                        columns: gridColumns,
-                        spacing: 8
-                    ) {
-                        ForEach(items) { item in
-                            launcherItemView(item)
-                                .id(item.id)
+                    VStack(spacing: 0) {
+                        if showsRecentlyInstalledRow {
+                            recentlyInstalledRow
+                            Divider().opacity(0.7)
                         }
+
+                        LazyVGrid(
+                            columns: gridColumns,
+                            spacing: 8
+                        ) {
+                            ForEach(items) { item in
+                                launcherItemView(item)
+                                    .id(item.id)
+                            }
+                        }
+                        .padding(12)
                     }
-                    .padding(12)
+                    // Metrics live on the whole scroll content (strip + grid)
+                    // so the custom scroll bar tracks the true content height.
                     .background {
                         GeometryReader { contentGeometry in
                             Color.clear

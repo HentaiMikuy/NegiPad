@@ -173,6 +173,34 @@ enum AppSearchEngine {
         return 18 + density * 18 + startBonus
     }
 
+    // MARK: - Keyword bindings
+
+    /// Match ladder for a user-defined keyword bound to a set of apps
+    /// ("数据库" → three database clients). The keyword text scores like an
+    /// alias — exact > prefix > substring > fuzzy subsequence — and ASCII
+    /// queries additionally match the keyword's pinyin forms, so "shujuku"
+    /// and "sjk" reach a Chinese keyword too.
+    static func keywordMatchScore(normalizedQuery query: String, keyword: String) -> Double? {
+        var best: Double?
+
+        func consider(_ score: Double?) {
+            guard let score else { return }
+            if score > (best ?? -.infinity) {
+                best = score
+            }
+        }
+
+        consider(aliasMatchScore(normalizedQuery: query, alias: keyword))
+
+        if query.allSatisfy(\.isASCII),
+           let pinyin = pinyinForms(of: keyword) {
+            consider(pinyinMatchScore(query: query, pinyin: pinyin.full, isInitials: false))
+            consider(pinyinMatchScore(query: query, pinyin: pinyin.initials, isInitials: true))
+        }
+
+        return best
+    }
+
     // MARK: - Usage weighting
 
     /// Bonus from launch history: a damped frequency term plus a recency

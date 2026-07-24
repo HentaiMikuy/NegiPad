@@ -8,6 +8,10 @@ final class AppLibrary: ObservableObject {
     @Published private(set) var favoriteIDs = Set<String>()
     @Published private(set) var categoryOverrides: [String: AppCategory] = [:]
     @Published private(set) var customCategories: [AppCategory] = []
+    /// User-defined keyword → apps bindings ("数据库" → three database
+    /// clients); the launcher search treats each keyword as an extra match
+    /// channel for every bound app.
+    @Published private(set) var keywordGroups: [SearchKeywordGroup] = []
     /// Top-level launcher order. Entries are app IDs (apps outside any
     /// folder) or folder IDs, so a folder occupies its own reorderable slot
     /// instead of inheriting the position of its first member.
@@ -255,10 +259,25 @@ final class AppLibrary: ObservableObject {
             )
         }
 
+        // User keyword bindings: each group's keyword is scored once against
+        // the query (not per app), and every bound app inherits the best
+        // score any of its groups earned.
+        var keywordScoreByAppID: [String: Double] = [:]
+        for group in keywordGroups {
+            guard let score = AppSearchEngine.keywordMatchScore(
+                normalizedQuery: queryKey,
+                keyword: group.keyword
+            ) else { continue }
+            for appID in group.appIDs
+            where score > (keywordScoreByAppID[appID] ?? -.infinity) {
+                keywordScoreByAppID[appID] = score
+            }
+        }
+
         // Apps: best channel match + usage boost. Members of an already
         // matched folder stay hidden to avoid double listings.
         for app in apps where !matchedFolderMemberIDs.contains(app.id) {
-            guard let matchScore = AppSearchEngine.matchScore(
+            let channelScore = AppSearchEngine.matchScore(
                 normalizedQuery: queryKey,
                 appName: app.name,
                 pinyinName: app.pinyinName,
@@ -266,7 +285,10 @@ final class AppLibrary: ObservableObject {
                 aliases: aliases[app.id] ?? [],
                 bundleIdentifier: app.bundleIdentifier,
                 categoryName: category(for: app).rawValue
-            ) else {
+            )
+            guard let matchScore = [channelScore, keywordScoreByAppID[app.id]]
+                .compactMap({ $0 })
+                .max() else {
                 continue
             }
 
@@ -300,6 +322,10 @@ final class AppLibrary: ObservableObject {
 
     func folder(withID id: String) -> AppFolder? {
         foldersByID[id]
+    }
+
+    func app(withID id: String) -> AppItem? {
+        appsByID[id]
     }
 
     func folderContaining(_ appID: String) -> AppFolder? {
@@ -630,6 +656,69 @@ final class AppLibrary: ObservableObject {
         savePreferences()
     }
 
+    // MARK: - Search keywords
+
+    func isKeywordAvailable(_ keyword: String, excluding groupID: String? = nil) -> Bool {
+        let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKeyword.isEmpty else { return false }
+
+        return !keywordGroups.contains { group in
+            group.id != groupID
+                && group.keyword.localizedCaseInsensitiveCompare(trimmedKeyword) == .orderedSame
+        }
+    }
+
+    @discardableResult
+    func createKeywordGroup(keyword: String, appIDs: [String]) -> SearchKeywordGroup? {
+        let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isKeywordAvailable(trimmedKeyword) else { return nil }
+
+        let group = SearchKeywordGroup(
+            keyword: trimmedKeyword,
+            appIDs: deduplicated(appIDs)
+        )
+        keywordGroups.append(group)
+        invalidateSearchCache()
+        savePreferences()
+        return group
+    }
+
+    @discardableResult
+    func updateKeywordGroup(
+        _ groupID: String,
+        keyword: String,
+        appIDs: [String]
+    ) -> SearchKeywordGroup? {
+        let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = keywordGroups.firstIndex(where: { $0.id == groupID }),
+              isKeywordAvailable(trimmedKeyword, excluding: groupID) else {
+            return nil
+        }
+
+        var group = keywordGroups[index]
+        group.keyword = trimmedKeyword
+        group.appIDs = deduplicated(appIDs)
+        guard group != keywordGroups[index] else { return group }
+
+        keywordGroups[index] = group
+        invalidateSearchCache()
+        savePreferences()
+        return group
+    }
+
+    func deleteKeywordGroup(_ groupID: String) {
+        guard keywordGroups.contains(where: { $0.id == groupID }) else { return }
+
+        keywordGroups.removeAll { $0.id == groupID }
+        invalidateSearchCache()
+        savePreferences()
+    }
+
+    private func deduplicated(_ ids: [String]) -> [String] {
+        var seen = Set<String>()
+        return ids.filter { seen.insert($0).inserted }
+    }
+
     // MARK: - Undo stack
 
     private func recordUndoSnapshot() {
@@ -685,6 +774,7 @@ final class AppLibrary: ObservableObject {
         folders = preferences.folders ?? []
         usageStats = preferences.usageStats ?? [:]
         aliases = preferences.aliases ?? [:]
+        keywordGroups = preferences.keywordGroups ?? []
 
         if let savedOrder = preferences.topLevelOrder {
             topLevelOrder = savedOrder
@@ -742,7 +832,8 @@ final class AppLibrary: ObservableObject {
             folders: folders,
             topLevelOrder: topLevelOrder,
             usageStats: usageStats,
-            aliases: aliases
+            aliases: aliases,
+            keywordGroups: keywordGroups
         )
         guard let data = try? JSONEncoder().encode(preferences) else { return }
         UserDefaults.standard.set(data, forKey: preferencesKey)
@@ -899,4 +990,5 @@ private struct Preferences: Codable {
     let topLevelOrder: [String]?
     let usageStats: [String: AppUsage]?
     let aliases: [String: [String]]?
+    let keywordGroups: [SearchKeywordGroup]?
 }

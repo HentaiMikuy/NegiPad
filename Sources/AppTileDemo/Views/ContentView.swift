@@ -9,6 +9,7 @@ enum LibraryFilter: Hashable {
     case launcherSettings
     case generalSettings
     case toolboxSettings
+    case keywordSettings
 }
 
 private struct CategoryEditorRequest: Identifiable {
@@ -48,12 +49,15 @@ struct ContentView: View {
             "通用"
         case .toolboxSettings:
             "小工具"
+        case .keywordSettings:
+            "搜索关键字"
         }
     }
 
     private var isShowingSettings: Bool {
         switch activeFilter {
-        case .shortcutSettings, .launcherSettings, .generalSettings, .toolboxSettings, .folders:
+        case .shortcutSettings, .launcherSettings, .generalSettings, .toolboxSettings,
+             .keywordSettings, .folders:
             true
         default:
             false
@@ -71,7 +75,7 @@ struct ContentView: View {
             case let .category(categoryID):
                 matchesFilter = library.category(for: app).id == categoryID
             case .folders, .shortcutSettings, .launcherSettings, .generalSettings,
-                 .toolboxSettings:
+                 .toolboxSettings, .keywordSettings:
                 matchesFilter = false
             }
 
@@ -97,6 +101,8 @@ struct ContentView: View {
                 GeneralSettingsView()
             } else if activeFilter == .toolboxSettings {
                 ToolboxSettingsView()
+            } else if activeFilter == .keywordSettings {
+                KeywordSettingsView()
             } else if activeFilter == .folders {
                 FolderManagerView()
             } else {
@@ -260,6 +266,9 @@ struct ContentView: View {
 
                 Label("小工具", systemImage: "wrench.and.screwdriver")
                     .tag(LibraryFilter.toolboxSettings)
+
+                Label("搜索关键字", systemImage: "text.magnifyingglass")
+                    .tag(LibraryFilter.keywordSettings)
 
                 Label("快捷键", systemImage: "keyboard")
                     .tag(LibraryFilter.shortcutSettings)
