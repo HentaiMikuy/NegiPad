@@ -8,10 +8,47 @@ struct LauncherSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("浏览方式")
+                    Text("启动器")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                    Text("选择启动器中应用内容的浏览与翻页方式。")
+                    Text("自定义启动器面板的尺寸，以及应用内容的浏览与翻页方式。")
                         .foregroundStyle(.secondary)
+                }
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("面板尺寸")
+                            .font(.headline)
+
+                        panelSizeSlider(
+                            title: "宽度",
+                            value: $settings.panelWidth,
+                            range: LauncherSettings.panelWidthRange
+                        )
+
+                        panelSizeSlider(
+                            title: "高度",
+                            value: $settings.panelHeight,
+                            range: LauncherSettings.panelHeightRange
+                        )
+
+                        HStack(alignment: .top) {
+                            Text(panelSizeFootnote)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer()
+
+                            Button("恢复默认") {
+                                settings.resetPanelSize()
+                            }
+                            .disabled(settings.isUsingDefaultPanelSize)
+                            .help(
+                                "恢复为 \(Int(LauncherSettings.defaultPanelWidth)) × \(Int(LauncherSettings.defaultPanelHeight))"
+                            )
+                        }
+                    }
+                    .padding(8)
                 }
 
                 GroupBox {
@@ -55,7 +92,7 @@ struct LauncherSettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("左右翻页说明", systemImage: "hand.draw")
                             .font(.headline)
-                        Text("每页最多显示 28 个项目。还可以使用触控板横向滑动、底部翻页按钮，或通过方向键跨页浏览。页面采用懒加载和原生滚动对齐，以保持动画流畅。")
+                        Text("每页最多显示 \(pagedItemsPerPage) 个项目。还可以使用触控板横向滑动、底部翻页按钮，或通过方向键跨页浏览。页面采用懒加载和原生滚动对齐，以保持动画流畅。")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -87,6 +124,45 @@ struct LauncherSettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var panelColumnCount: Int {
+        LauncherView.columnCount(forPanelWidth: settings.panelWidth)
+    }
+
+    private var panelRowCountPerPage: Int {
+        LauncherView.rowCountPerPage(forPanelHeight: settings.panelHeight)
+    }
+
+    private var pagedItemsPerPage: Int {
+        panelColumnCount * panelRowCountPerPage
+    }
+
+    private var panelSizeFootnote: String {
+        var footnote = "当前 \(Int(settings.panelWidth)) × \(Int(settings.panelHeight))，每行显示 \(panelColumnCount) 个应用"
+        if settings.browsingMode == .horizontalPaging {
+            footnote += "，每页 \(panelRowCountPerPage) 行"
+        }
+        footnote += "。调整立即生效。"
+        return footnote
+    }
+
+    private func panelSizeSlider(
+        title: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .frame(width: 34, alignment: .leading)
+
+            Slider(value: value, in: range, step: 20)
+
+            Text("\(Int(value.wrappedValue)) pt")
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 58, alignment: .trailing)
+        }
     }
 
     private func browsingModeRow(_ mode: LauncherBrowsingMode) -> some View {

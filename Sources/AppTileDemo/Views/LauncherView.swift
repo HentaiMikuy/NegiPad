@@ -28,20 +28,43 @@ private struct LiveReorderPlacement: Equatable {
 }
 
 struct LauncherView: View {
-    /// Full panel size; AppDelegate sizes the borderless NSPanel to match.
-    static let panelSize = CGSize(width: 760, height: 668)
     /// Panel height while only a calculator result is showing: search header
     /// (76) + divider + result row (70) + divider + footer (48).
     static let compactPanelHeight: CGFloat = 196
 
-    private let columnCount = 7
-    private let rowCountPerPage = 4
+    /// Columns that fit the user-configured panel width at ~98pt per tile
+    /// (24pt grid padding + 8pt column spacing), reproducing the classic
+    /// 7 columns at the default 760pt width.
+    static func columnCount(forPanelWidth width: Double) -> Int {
+        max(5, Int((width - 16) / 106))
+    }
+
+    /// Grid rows per page (horizontal paging mode) that fit the configured
+    /// panel height below the fixed chrome (header, recently-installed
+    /// strip, footer); 4 rows at the default 668pt height.
+    static func rowCountPerPage(forPanelHeight height: Double) -> Int {
+        max(2, Int((height - 240) / 104))
+    }
 
     @EnvironmentObject private var library: AppLibrary
     @EnvironmentObject private var launcherSession: LauncherSession
     @EnvironmentObject private var launcherSettings: LauncherSettings
     @EnvironmentObject private var toolboxSettings: ToolboxSettings
     @FocusState private var searchIsFocused: Bool
+
+    /// Full panel size from user settings; AppDelegate sizes the borderless
+    /// NSPanel to match.
+    private var panelSize: CGSize {
+        launcherSettings.panelSize
+    }
+
+    private var columnCount: Int {
+        Self.columnCount(forPanelWidth: panelSize.width)
+    }
+
+    private var rowCountPerPage: Int {
+        Self.rowCountPerPage(forPanelHeight: panelSize.height)
+    }
 
     @State private var searchText = ""
     @State private var selectedID: LauncherItem.ID?
@@ -63,6 +86,9 @@ struct LauncherView: View {
     /// Reports the height the panel should have (top edge fixed) whenever
     /// the launcher switches between full and calculator-only layouts.
     let onPreferredHeightChange: (CGFloat) -> Void
+    /// Fires when the user-configured panel size changes so the host can
+    /// resize and re-center the NSPanel while it is on screen.
+    let onPanelSizeChange: () -> Void
 
     private var items: [LauncherItem] {
         library.launcherItems(matching: searchText)
@@ -93,7 +119,7 @@ struct LauncherView: View {
     }
 
     private var preferredPanelHeight: CGFloat {
-        isCalculatorOnlyMode ? Self.compactPanelHeight : Self.panelSize.height
+        isCalculatorOnlyMode ? Self.compactPanelHeight : panelSize.height
     }
 
     private var itemIDs: [LauncherItem.ID] {
@@ -165,6 +191,7 @@ struct LauncherView: View {
                 FolderOverlay(
                     folder: folder,
                     apps: library.apps(in: folder),
+                    panelSize: panelSize,
                     beginsRenaming: folderStartsRenaming,
                     onRename: { name in
                         library.renameFolder(folder.id, to: name)
@@ -184,7 +211,7 @@ struct LauncherView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
-        .frame(width: Self.panelSize.width, height: preferredPanelHeight)
+        .frame(width: panelSize.width, height: preferredPanelHeight)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
@@ -197,6 +224,9 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: preferredPanelHeight) { _, newHeight in
             onPreferredHeightChange(newHeight)
+        }
+        .onChange(of: panelSize) {
+            onPanelSizeChange()
         }
         .alert(
             "搜索别名",
@@ -1551,6 +1581,9 @@ private struct FolderOverlay: View {
 
     let folder: AppFolder
     let apps: [AppItem]
+    /// Current launcher panel size, forwarded to the exit-drop delegate so
+    /// its "outside the folder card" hit test tracks the configured size.
+    let panelSize: CGSize
     let beginsRenaming: Bool
     let onRename: (String) -> Void
     let onRemove: (String) -> Void
@@ -1560,6 +1593,7 @@ private struct FolderOverlay: View {
     init(
         folder: AppFolder,
         apps: [AppItem],
+        panelSize: CGSize,
         beginsRenaming: Bool,
         onRename: @escaping (String) -> Void,
         onRemove: @escaping (String) -> Void,
@@ -1568,6 +1602,7 @@ private struct FolderOverlay: View {
     ) {
         self.folder = folder
         self.apps = apps
+        self.panelSize = panelSize
         self.beginsRenaming = beginsRenaming
         self.onRename = onRename
         self.onRemove = onRemove
@@ -1644,6 +1679,7 @@ private struct FolderOverlay: View {
         .onDrop(
             of: [UTType.text],
             delegate: FolderExitDropDelegate(
+                panelSize: panelSize,
                 draggedAppID: $draggedAppID,
                 isExitDropTarget: $isExitDropTarget,
                 removeFromFolder: onRemove
@@ -1878,12 +1914,15 @@ private struct FolderOverlay: View {
 }
 
 private struct FolderExitDropDelegate: DropDelegate {
+    /// Full panel size; drop locations arrive in this coordinate space.
+    let panelSize: CGSize
+
     /// The overlay card centered in the panel, in the drop area's (full
     /// panel) coordinate space.
     private var folderFrame: CGRect {
         CGRect(
-            x: (LauncherView.panelSize.width - folderOverlayCardSize.width) / 2,
-            y: (LauncherView.panelSize.height - folderOverlayCardSize.height) / 2,
+            x: (panelSize.width - folderOverlayCardSize.width) / 2,
+            y: (panelSize.height - folderOverlayCardSize.height) / 2,
             width: folderOverlayCardSize.width,
             height: folderOverlayCardSize.height
         )

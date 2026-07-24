@@ -9,10 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let launcherSettings = LauncherSettings()
     let toolboxSettings = ToolboxSettings()
 
-    private let launcherSize = NSSize(
-        width: LauncherView.panelSize.width,
-        height: LauncherView.panelSize.height
-    )
+    private var launcherSize: NSSize {
+        NSSize(
+            width: launcherSettings.panelSize.width,
+            height: launcherSettings.panelSize.height
+        )
+    }
     private var launcherPanel: LauncherPanel?
     private var managerWindow: NSWindow?
     private var iconRefreshTask: Task<Void, Never>?
@@ -200,6 +202,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 onPreferredHeightChange: { [weak self] height in
                     self?.setLauncherHeight(height)
+                },
+                onPanelSizeChange: { [weak self] in
+                    self?.applyLauncherPanelSize()
                 }
             )
             .environmentObject(library)
@@ -207,6 +212,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(launcherSettings)
             .environmentObject(toolboxSettings)
         )
+    }
+
+    /// Applies the user-configured panel size while the launcher is on
+    /// screen (size sliders changed live); a hidden panel simply picks the
+    /// new size up on the next showLauncher pass.
+    private func applyLauncherPanelSize() {
+        guard let launcherPanel,
+              launcherPanel.isVisible else {
+            return
+        }
+
+        launcherPanel.setContentSize(launcherSize)
+        launcherPanel.contentView?.layoutSubtreeIfNeeded()
+        positionLauncher(launcherPanel)
     }
 
     /// Resizes the visible panel with its top edge fixed, so the search

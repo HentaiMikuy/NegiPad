@@ -57,6 +57,15 @@ enum PagingWheelBehavior: String, CaseIterable, Codable, Identifiable, Sendable 
 
 @MainActor
 final class LauncherSettings: ObservableObject {
+    /// User-configurable launcher panel size. The defaults reproduce the
+    /// classic fixed layout (760 × 668 → 7 columns, 4 paged rows); ranges
+    /// keep the panel usable on common screens and wide enough for the
+    /// folder overlay card.
+    static let defaultPanelWidth: Double = 760
+    static let defaultPanelHeight: Double = 668
+    static let panelWidthRange: ClosedRange<Double> = 640...1200
+    static let panelHeightRange: ClosedRange<Double> = 560...900
+
     @Published var browsingMode: LauncherBrowsingMode {
         didSet {
             UserDefaults.standard.set(browsingMode.rawValue, forKey: Self.browsingModeKey)
@@ -69,6 +78,18 @@ final class LauncherSettings: ObservableObject {
                 pagingWheelBehavior.rawValue,
                 forKey: Self.pagingWheelBehaviorKey
             )
+        }
+    }
+
+    @Published var panelWidth: Double {
+        didSet {
+            UserDefaults.standard.set(panelWidth, forKey: Self.panelWidthKey)
+        }
+    }
+
+    @Published var panelHeight: Double {
+        didSet {
+            UserDefaults.standard.set(panelHeight, forKey: Self.panelHeightKey)
         }
     }
 
@@ -85,6 +106,21 @@ final class LauncherSettings: ObservableObject {
 
     private static let browsingModeKey = "AppTileDemo.LauncherBrowsingMode"
     private static let pagingWheelBehaviorKey = "AppTileDemo.PagingWheelBehavior"
+    private static let panelWidthKey = "AppTileDemo.LauncherPanelWidth"
+    private static let panelHeightKey = "AppTileDemo.LauncherPanelHeight"
+
+    var panelSize: CGSize {
+        CGSize(width: panelWidth, height: panelHeight)
+    }
+
+    var isUsingDefaultPanelSize: Bool {
+        panelWidth == Self.defaultPanelWidth && panelHeight == Self.defaultPanelHeight
+    }
+
+    func resetPanelSize() {
+        panelWidth = Self.defaultPanelWidth
+        panelHeight = Self.defaultPanelHeight
+    }
 
     init() {
         if let rawValue = UserDefaults.standard.string(forKey: Self.browsingModeKey),
@@ -100,6 +136,18 @@ final class LauncherSettings: ObservableObject {
         } else {
             pagingWheelBehavior = .shiftModified
         }
+
+        // double(forKey:) returns 0 when the key is absent; any stored value
+        // is clamped so hand-edited defaults can never break the layout.
+        let storedWidth = UserDefaults.standard.double(forKey: Self.panelWidthKey)
+        panelWidth = storedWidth == 0
+            ? Self.defaultPanelWidth
+            : min(max(storedWidth, Self.panelWidthRange.lowerBound), Self.panelWidthRange.upperBound)
+
+        let storedHeight = UserDefaults.standard.double(forKey: Self.panelHeightKey)
+        panelHeight = storedHeight == 0
+            ? Self.defaultPanelHeight
+            : min(max(storedHeight, Self.panelHeightRange.lowerBound), Self.panelHeightRange.upperBound)
 
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

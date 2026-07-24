@@ -44,7 +44,7 @@ struct ContentView: View {
         case .shortcutSettings:
             "快捷键"
         case .launcherSettings:
-            "浏览方式"
+            "启动器"
         case .generalSettings:
             "通用"
         case .toolboxSettings:
@@ -273,7 +273,7 @@ struct ContentView: View {
                 Label("快捷键", systemImage: "keyboard")
                     .tag(LibraryFilter.shortcutSettings)
 
-                Label("浏览方式", systemImage: "rectangle.on.rectangle")
+                Label("启动器", systemImage: "rectangle.on.rectangle")
                     .tag(LibraryFilter.launcherSettings)
             }
         }
