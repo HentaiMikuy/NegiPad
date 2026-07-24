@@ -21,6 +21,16 @@
 		A0000000000000000000002B /* AppIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* AppIconView.swift */; };
 		A0000000000000000000002C /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* GlobalShortcutManager.swift */; };
 		A0000000000000000000002D /* ShortcutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* ShortcutSettingsView.swift */; };
+		A0000000000000000000002E /* LauncherSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* LauncherSettings.swift */; };
+		A0000000000000000000002F /* LauncherSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001F /* LauncherSettingsView.swift */; };
+		B00000000000000000000020 /* ApplicationDirectoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ApplicationDirectoryMonitor.swift */; };
+		B00000000000000000000021 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* GeneralSettingsView.swift */; };
+		B00000000000000000000022 /* FolderManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* FolderManagerView.swift */; };
+		B00000000000000000000023 /* AppUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* AppUsage.swift */; };
+		B00000000000000000000024 /* AppSearchEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* AppSearchEngine.swift */; };
+		B00000000000000000000025 /* CalculatorEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* CalculatorEngine.swift */; };
+		B00000000000000000000026 /* ToolboxSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* ToolboxSettings.swift */; };
+		B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* ToolboxSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +49,16 @@
 		A0000000000000000000001B /* AppIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconView.swift; sourceTree = "<group>"; };
 		A0000000000000000000001C /* GlobalShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalShortcutManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000001D /* ShortcutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutSettingsView.swift; sourceTree = "<group>"; };
+		A0000000000000000000001E /* LauncherSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherSettings.swift; sourceTree = "<group>"; };
+		A0000000000000000000001F /* LauncherSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherSettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* ApplicationDirectoryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationDirectoryMonitor.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* FolderManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderManagerView.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* AppUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUsage.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* AppSearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSearchEngine.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* CalculatorEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorEngine.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* ToolboxSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolboxSettings.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* ToolboxSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolboxSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +108,7 @@
 				A00000000000000000000011 /* AppCategory.swift */,
 				A00000000000000000000012 /* AppItem.swift */,
 				A00000000000000000000019 /* AppFolder.swift */,
+				B00000000000000000000013 /* AppUsage.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -98,6 +119,11 @@
 				A00000000000000000000013 /* AppScanner.swift */,
 				A0000000000000000000001A /* AppIconLoader.swift */,
 				A0000000000000000000001C /* GlobalShortcutManager.swift */,
+				A0000000000000000000001E /* LauncherSettings.swift */,
+				B00000000000000000000010 /* ApplicationDirectoryMonitor.swift */,
+				B00000000000000000000014 /* AppSearchEngine.swift */,
+				B00000000000000000000015 /* CalculatorEngine.swift */,
+				B00000000000000000000016 /* ToolboxSettings.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -118,6 +144,10 @@
 				A00000000000000000000018 /* LauncherView.swift */,
 				A0000000000000000000001B /* AppIconView.swift */,
 				A0000000000000000000001D /* ShortcutSettingsView.swift */,
+				A0000000000000000000001F /* LauncherSettingsView.swift */,
+				B00000000000000000000011 /* GeneralSettingsView.swift */,
+				B00000000000000000000012 /* FolderManagerView.swift */,
+				B00000000000000000000017 /* ToolboxSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -205,6 +235,16 @@
 				A0000000000000000000002B /* AppIconView.swift in Sources */,
 				A0000000000000000000002C /* GlobalShortcutManager.swift in Sources */,
 				A0000000000000000000002D /* ShortcutSettingsView.swift in Sources */,
+				A0000000000000000000002E /* LauncherSettings.swift in Sources */,
+				A0000000000000000000002F /* LauncherSettingsView.swift in Sources */,
+				B00000000000000000000020 /* ApplicationDirectoryMonitor.swift in Sources */,
+				B00000000000000000000021 /* GeneralSettingsView.swift in Sources */,
+				B00000000000000000000022 /* FolderManagerView.swift in Sources */,
+				B00000000000000000000023 /* AppUsage.swift in Sources */,
+				B00000000000000000000024 /* AppSearchEngine.swift in Sources */,
+				B00000000000000000000025 /* CalculatorEngine.swift in Sources */,
+				B00000000000000000000026 /* ToolboxSettings.swift in Sources */,
+				B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -3,8 +3,12 @@ import SwiftUI
 enum LibraryFilter: Hashable {
     case all
     case favorites
+    case folders
     case category(String)
     case shortcutSettings
+    case launcherSettings
+    case generalSettings
+    case toolboxSettings
 }
 
 private struct CategoryEditorRequest: Identifiable {
@@ -32,10 +36,27 @@ struct ContentView: View {
             "全部应用"
         case .favorites:
             "我的收藏"
+        case .folders:
+            "文件夹"
         case let .category(categoryID):
             library.category(withID: categoryID)?.name ?? "应用分类"
         case .shortcutSettings:
             "快捷键"
+        case .launcherSettings:
+            "浏览方式"
+        case .generalSettings:
+            "通用"
+        case .toolboxSettings:
+            "小工具"
+        }
+    }
+
+    private var isShowingSettings: Bool {
+        switch activeFilter {
+        case .shortcutSettings, .launcherSettings, .generalSettings, .toolboxSettings, .folders:
+            true
+        default:
+            false
         }
     }
 
@@ -49,7 +70,8 @@ struct ContentView: View {
                 matchesFilter = library.isFavorite(app)
             case let .category(categoryID):
                 matchesFilter = library.category(for: app).id == categoryID
-            case .shortcutSettings:
+            case .folders, .shortcutSettings, .launcherSettings, .generalSettings,
+                 .toolboxSettings:
                 matchesFilter = false
             }
 
@@ -69,6 +91,14 @@ struct ContentView: View {
         } detail: {
             if activeFilter == .shortcutSettings {
                 ShortcutSettingsView()
+            } else if activeFilter == .launcherSettings {
+                LauncherSettingsView()
+            } else if activeFilter == .generalSettings {
+                GeneralSettingsView()
+            } else if activeFilter == .toolboxSettings {
+                ToolboxSettingsView()
+            } else if activeFilter == .folders {
+                FolderManagerView()
             } else {
                 VStack(spacing: 0) {
                     header
@@ -85,7 +115,7 @@ struct ContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .toolbar {
-            if activeFilter != .shortcutSettings {
+            if !isShowingSettings {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         library.refresh()
@@ -134,18 +164,20 @@ struct ContentView: View {
             CategoryEditorSheet(
                 category: request.category,
                 existingCategories: library.categories
-            ) { name, symbol in
+            ) { name, symbol, tintChoice in
                 if let category = request.category {
                     if let updatedCategory = library.updateCustomCategory(
                         category.id,
                         name: name,
-                        symbol: symbol
+                        symbol: symbol,
+                        tintChoice: tintChoice
                     ) {
                         selection = .category(updatedCategory.id)
                     }
                 } else if let newCategory = library.createCustomCategory(
                     name: name,
-                    symbol: symbol
+                    symbol: symbol,
+                    tintChoice: tintChoice
                 ) {
                     selection = .category(newCategory.id)
                 }
@@ -169,6 +201,13 @@ struct ContentView: View {
                     count: library.apps.filter(library.isFavorite).count
                 )
                 .tag(LibraryFilter.favorites)
+
+                sidebarRow(
+                    title: "文件夹",
+                    symbol: "folder",
+                    count: library.folders.count
+                )
+                .tag(LibraryFilter.folders)
             }
 
             Section {
@@ -216,8 +255,17 @@ struct ContentView: View {
             }
 
             Section("设置") {
+                Label("通用", systemImage: "gearshape")
+                    .tag(LibraryFilter.generalSettings)
+
+                Label("小工具", systemImage: "wrench.and.screwdriver")
+                    .tag(LibraryFilter.toolboxSettings)
+
                 Label("快捷键", systemImage: "keyboard")
                     .tag(LibraryFilter.shortcutSettings)
+
+                Label("浏览方式", systemImage: "rectangle.on.rectangle")
+                    .tag(LibraryFilter.launcherSettings)
             }
         }
         .listStyle(.sidebar)
@@ -322,21 +370,23 @@ private struct CategoryEditorSheet: View {
 
     let category: AppCategory?
     let existingCategories: [AppCategory]
-    let onSave: (String, String) -> Void
+    let onSave: (String, String, AppCategoryTint) -> Void
 
     @State private var name: String
     @State private var selectedSymbol: String
+    @State private var selectedTint: AppCategoryTint
 
     init(
         category: AppCategory?,
         existingCategories: [AppCategory],
-        onSave: @escaping (String, String) -> Void
+        onSave: @escaping (String, String, AppCategoryTint) -> Void
     ) {
         self.category = category
         self.existingCategories = existingCategories
         self.onSave = onSave
         _name = State(initialValue: category?.name ?? "")
         _selectedSymbol = State(initialValue: category?.symbol ?? AppCategory.defaultSymbols[0])
+        _selectedTint = State(initialValue: category?.tintChoice ?? .blue)
     }
 
     private var trimmedName: String {
@@ -379,7 +429,7 @@ private struct CategoryEditorSheet: View {
                         .font(.headline)
                     Spacer()
                     Label(trimmedName.isEmpty ? "分类预览" : trimmedName, systemImage: selectedSymbol)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(selectedTint.color)
                 }
 
                 LazyVGrid(
@@ -398,7 +448,7 @@ private struct CategoryEditorSheet: View {
                                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                                         .fill(
                                             selectedSymbol == symbol
-                                                ? Color.accentColor
+                                                ? selectedTint.color
                                                 : Color(nsColor: .controlBackgroundColor)
                                         )
                                 }
@@ -406,7 +456,7 @@ private struct CategoryEditorSheet: View {
                                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                                         .stroke(
                                             selectedSymbol == symbol
-                                                ? Color.accentColor
+                                                ? selectedTint.color
                                                 : Color.secondary.opacity(0.2),
                                             lineWidth: 1
                                         )
@@ -415,6 +465,47 @@ private struct CategoryEditorSheet: View {
                         .buttonStyle(.plain)
                         .help(symbol)
                         .accessibilityLabel("选择图标 \(symbol)")
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("选择颜色")
+                    .font(.headline)
+
+                HStack(spacing: 10) {
+                    ForEach(AppCategoryTint.allCases) { tintChoice in
+                        Button {
+                            selectedTint = tintChoice
+                        } label: {
+                            Circle()
+                                .fill(tintChoice.color)
+                                .frame(width: 24, height: 24)
+                                .overlay {
+                                    Circle()
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                                }
+                                .overlay {
+                                    if selectedTint == tintChoice {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .padding(3)
+                                .overlay {
+                                    Circle()
+                                        .stroke(
+                                            selectedTint == tintChoice
+                                                ? tintChoice.color
+                                                : Color.clear,
+                                            lineWidth: 2
+                                        )
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .help(tintChoice.name)
+                        .accessibilityLabel("选择\(tintChoice.name)")
                     }
                 }
             }
@@ -436,12 +527,12 @@ private struct CategoryEditorSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 480, height: 390)
+        .frame(width: 480, height: 480)
     }
 
     private func save() {
         guard canSave else { return }
-        onSave(trimmedName, selectedSymbol)
+        onSave(trimmedName, selectedSymbol, selectedTint)
         dismiss()
     }
 }

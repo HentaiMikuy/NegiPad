@@ -1,28 +1,43 @@
 import Foundation
 
 enum AppScanner {
-    static func scan() -> [AppItem] {
+    static var applicationDirectories: [URL] {
         let fileManager = FileManager.default
         let homeDirectory = fileManager.homeDirectoryForCurrentUser
-        let roots = [
+        return [
             URL(fileURLWithPath: "/Applications", isDirectory: true),
             URL(fileURLWithPath: "/Applications/Utilities", isDirectory: true),
             homeDirectory.appendingPathComponent("Applications", isDirectory: true),
             URL(fileURLWithPath: "/System/Applications", isDirectory: true),
             URL(fileURLWithPath: "/System/Applications/Utilities", isDirectory: true)
         ]
+    }
+
+    static func scan() -> [AppItem] {
+        let fileManager = FileManager.default
 
         var applications: [AppItem] = []
         var seenPaths = Set<String>()
 
-        for root in roots where fileManager.fileExists(atPath: root.path) {
+        for root in applicationDirectories where fileManager.fileExists(atPath: root.path) {
+            // Not .skipsHiddenFiles: Safari ships as a hidden-flagged
+            // symlink into the OS cryptex (Finder special-cases it and shows
+            // it anyway), so that option would drop it from the scan.
+            // Dot-prefixed junk is filtered by name below instead.
             let candidates = (try? fileManager.contentsOfDirectory(
                 at: root,
-                includingPropertiesForKeys: [.isApplicationKey, .isDirectoryKey],
-                options: [.skipsHiddenFiles]
+                includingPropertiesForKeys: [
+                    .isApplicationKey,
+                    .isDirectoryKey,
+                    .addedToDirectoryDateKey,
+                    .creationDateKey
+                ],
+                options: []
             )) ?? []
 
-            for url in candidates where url.pathExtension.lowercased() == "app" {
+            for url in candidates
+            where url.pathExtension.lowercased() == "app"
+                && !url.lastPathComponent.hasPrefix(".") {
                 let canonicalURL = url.resolvingSymlinksInPath().standardizedFileURL
                 let path = canonicalURL.path
 
@@ -45,6 +60,14 @@ enum AppScanner {
                     appURL: canonicalURL,
                     fileManager: fileManager
                 )
+                let pinyin = AppSearchEngine.pinyinForms(of: name)
+                // Read from the enumerated URL so the prefetched values are
+                // used; the canonical URL would trigger a fresh stat.
+                let dateValues = try? url.resourceValues(
+                    forKeys: [.addedToDirectoryDateKey, .creationDateKey]
+                )
+                let installDate = dateValues?.addedToDirectoryDate
+                    ?? dateValues?.creationDate
 
                 applications.append(
                     AppItem(
@@ -57,7 +80,10 @@ enum AppScanner {
                         automaticCategory: AppCategory.infer(
                             from: rawCategory,
                             appName: name
-                        )
+                        ),
+                        pinyinName: pinyin?.full,
+                        pinyinInitials: pinyin?.initials,
+                        installDate: installDate
                     )
                 )
             }

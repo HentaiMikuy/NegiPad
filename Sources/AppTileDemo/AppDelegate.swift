@@ -6,11 +6,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let library = AppLibrary()
     let launcherSession = LauncherSession()
     let shortcutSettings = ShortcutSettings()
+    let launcherSettings = LauncherSettings()
+    let toolboxSettings = ToolboxSettings()
 
-    private let launcherSize = NSSize(width: 760, height: 560)
+    private let launcherSize = NSSize(
+        width: LauncherView.panelSize.width,
+        height: LauncherView.panelSize.height
+    )
     private var launcherPanel: LauncherPanel?
     private var managerWindow: NSWindow?
     private var iconRefreshTask: Task<Void, Never>?
+    private let applicationDirectoryMonitor = ApplicationDirectoryMonitor()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -30,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         shortcutSettings.activate { [weak self] in
             self?.toggleLauncher()
+        }
+        applicationDirectoryMonitor.start { [weak self] in
+            self?.library.scheduleAutomaticRefresh()
         }
 
         DispatchQueue.main.async { [weak self] in
@@ -51,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         iconRefreshTask?.cancel()
+        applicationDirectoryMonitor.stop()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
@@ -129,6 +139,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let hostingController = NSHostingController(rootView: makeLauncherRootView())
+        // The panel frame is managed explicitly (showLauncher /
+        // setLauncherHeight); the hosting view must never push its own size
+        // into the window or the two would fight over the frame.
+        hostingController.sizingOptions = []
         panel.contentViewController = hostingController
         panel.backgroundColor = .clear
         panel.isOpaque = false
@@ -151,6 +165,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let rootView = ContentView()
             .environmentObject(library)
             .environmentObject(shortcutSettings)
+            .environmentObject(launcherSettings)
+            .environmentObject(toolboxSettings)
             .frame(minWidth: 820, minHeight: 560)
 
         let window = NSWindow(
@@ -181,10 +197,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 onOpenManager: { [weak self] in
                     self?.showManager()
+                },
+                onPreferredHeightChange: { [weak self] height in
+                    self?.setLauncherHeight(height)
                 }
             )
             .environmentObject(library)
             .environmentObject(launcherSession)
+            .environmentObject(launcherSettings)
+            .environmentObject(toolboxSettings)
+        )
+    }
+
+    /// Resizes the visible panel with its top edge fixed, so the search
+    /// field stays put while the body below grows or shrinks (calculator
+    /// mode). Full size is restored by showLauncher on the next present.
+    private func setLauncherHeight(_ height: CGFloat) {
+        guard let launcherPanel,
+              launcherPanel.isVisible else {
+            return
+        }
+
+        let frame = launcherPanel.frame
+        guard abs(frame.height - height) > 0.5 else { return }
+
+        launcherPanel.setFrame(
+            NSRect(
+                x: frame.origin.x,
+                y: frame.maxY - height,
+                width: frame.width,
+                height: height
+            ),
+            display: true,
+            animate: false
         )
     }
 

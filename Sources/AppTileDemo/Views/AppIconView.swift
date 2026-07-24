@@ -31,18 +31,20 @@ struct AppIconView: View {
         }
         .frame(width: size, height: size)
         .task(id: taskKey) {
-            image = nil
-            fallbackImage = nil
-
+            // The previous image is intentionally kept while reloading so a
+            // cancelled or slow load never blanks an already-shown icon.
             let loadedImage = await AppIconLoader.shared.image(
                 for: app,
                 pixelSize: max(Int(size * 2), 128)
             )
-            guard !Task.isCancelled else { return }
 
+            // Assign even if this task was cancelled mid-await: lazy
+            // containers can keep a view alive without re-running .task when
+            // it becomes visible again, and dropping the result here left
+            // the tile stuck on the empty placeholder.
             if let loadedImage {
                 image = loadedImage
-            } else {
+            } else if image == nil {
                 fallbackImage = SystemAppIconCache.shared.icon(for: app.url)
             }
         }

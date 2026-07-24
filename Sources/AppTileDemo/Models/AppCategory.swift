@@ -1,66 +1,114 @@
 import SwiftUI
 
+enum AppCategoryTint: String, CaseIterable, Codable, Identifiable, Sendable {
+    case blue
+    case indigo
+    case purple
+    case pink
+    case red
+    case orange
+    case yellow
+    case green
+    case mint
+    case teal
+    case cyan
+    case gray
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .blue: "蓝色"
+        case .indigo: "靛蓝"
+        case .purple: "紫色"
+        case .pink: "粉色"
+        case .red: "红色"
+        case .orange: "橙色"
+        case .yellow: "黄色"
+        case .green: "绿色"
+        case .mint: "薄荷绿"
+        case .teal: "青绿色"
+        case .cyan: "青色"
+        case .gray: "灰色"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .blue: .blue
+        case .indigo: .indigo
+        case .purple: .purple
+        case .pink: .pink
+        case .red: .red
+        case .orange: .orange
+        case .yellow: .yellow
+        case .green: .green
+        case .mint: .mint
+        case .teal: .teal
+        case .cyan: .cyan
+        case .gray: .gray
+        }
+    }
+}
+
 struct AppCategory: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let name: String
     let symbol: String
+    let tintChoice: AppCategoryTint
 
     var rawValue: String { name }
     var isCustom: Bool { id.hasPrefix("custom:") }
 
-    var tint: Color {
-        switch id {
-        case Self.productivity.id: .blue
-        case Self.development.id: .indigo
-        case Self.creativity.id: .pink
-        case Self.entertainment.id: .orange
-        case Self.learning.id: .green
-        case Self.lifestyle.id: .cyan
-        case Self.utilities.id: .purple
-        case Self.other.id: .gray
-        default: .accentColor
-        }
-    }
+    var tint: Color { tintChoice.color }
 
     static let productivity = AppCategory(
         id: "builtin:productivity",
         name: "效率办公",
-        symbol: "checkmark.circle"
+        symbol: "checkmark.circle",
+        tintChoice: .blue
     )
     static let development = AppCategory(
         id: "builtin:development",
         name: "开发工具",
-        symbol: "hammer"
+        symbol: "hammer",
+        tintChoice: .indigo
     )
     static let creativity = AppCategory(
         id: "builtin:creativity",
         name: "创意设计",
-        symbol: "paintpalette"
+        symbol: "paintpalette",
+        tintChoice: .pink
     )
     static let entertainment = AppCategory(
         id: "builtin:entertainment",
         name: "影音娱乐",
-        symbol: "play.rectangle"
+        symbol: "play.rectangle",
+        tintChoice: .orange
     )
     static let learning = AppCategory(
         id: "builtin:learning",
         name: "学习阅读",
-        symbol: "books.vertical"
+        symbol: "books.vertical",
+        tintChoice: .green
     )
     static let lifestyle = AppCategory(
         id: "builtin:lifestyle",
         name: "生活社交",
-        symbol: "person.2"
+        symbol: "person.2",
+        tintChoice: .cyan
     )
     static let utilities = AppCategory(
         id: "builtin:utilities",
         name: "系统工具",
-        symbol: "wrench.and.screwdriver"
+        symbol: "wrench.and.screwdriver",
+        tintChoice: .purple
     )
     static let other = AppCategory(
         id: "builtin:other",
         name: "其他应用",
-        symbol: "square.grid.2x2"
+        symbol: "square.grid.2x2",
+        tintChoice: .gray
     )
 
     static let builtInCategories = [
@@ -101,16 +149,30 @@ struct AppCategory: Identifiable, Codable, Hashable, Sendable {
         "star"
     ]
 
-    static func custom(name: String, symbol: String) -> AppCategory {
+    static func custom(
+        name: String,
+        symbol: String,
+        tintChoice: AppCategoryTint
+    ) -> AppCategory {
         AppCategory(
             id: "custom:\(UUID().uuidString)",
             name: name,
-            symbol: symbol
+            symbol: symbol,
+            tintChoice: tintChoice
         )
     }
 
-    func updating(name: String, symbol: String) -> AppCategory {
-        AppCategory(id: id, name: name, symbol: symbol)
+    func updating(
+        name: String,
+        symbol: String,
+        tintChoice: AppCategoryTint
+    ) -> AppCategory {
+        AppCategory(
+            id: id,
+            name: name,
+            symbol: symbol,
+            tintChoice: tintChoice
+        )
     }
 
     static func infer(from rawCategory: String?, appName: String) -> AppCategory {
@@ -176,12 +238,19 @@ struct AppCategory: Identifiable, Codable, Hashable, Sendable {
         case id
         case name
         case symbol
+        case tintChoice
     }
 
-    init(id: String, name: String, symbol: String) {
+    init(
+        id: String,
+        name: String,
+        symbol: String,
+        tintChoice: AppCategoryTint
+    ) {
         self.id = id
         self.name = name
         self.symbol = symbol
+        self.tintChoice = tintChoice
     }
 
     init(from decoder: Decoder) throws {
@@ -192,7 +261,8 @@ struct AppCategory: Identifiable, Codable, Hashable, Sendable {
             } ?? AppCategory(
                 id: "custom:legacy:\(legacyName)",
                 name: legacyName,
-                symbol: "tag"
+                symbol: "tag",
+                tintChoice: .blue
             )
             return
         }
@@ -201,6 +271,10 @@ struct AppCategory: Identifiable, Codable, Hashable, Sendable {
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "tag"
+        tintChoice = try container.decodeIfPresent(
+            AppCategoryTint.self,
+            forKey: .tintChoice
+        ) ?? .blue
     }
 
     func encode(to encoder: Encoder) throws {
@@ -208,5 +282,6 @@ struct AppCategory: Identifiable, Codable, Hashable, Sendable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(symbol, forKey: .symbol)
+        try container.encode(tintChoice, forKey: .tintChoice)
     }
 }
