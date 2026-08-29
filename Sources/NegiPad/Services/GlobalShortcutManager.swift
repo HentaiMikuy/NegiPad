@@ -109,6 +109,7 @@ final class ShortcutSettings: ObservableObject {
 
     private let preferencesKey = "NegiPad.GlobalShortcut"
     private let monitor = GlobalHotKeyMonitor()
+    private var isSuspendedForRecording = false
 
     init() {
         if let data = UserDefaults.standard.data(forKey: preferencesKey),
@@ -149,6 +150,21 @@ final class ShortcutSettings: ObservableObject {
 
     func restoreDefault() {
         updateShortcut(.default)
+    }
+
+    // Paired with resumeHotKey: unregisters the live hotkey so the recorder
+    // can re-capture the currently registered combo instead of firing it.
+    func suspendHotKey() {
+        guard !isSuspendedForRecording else { return }
+        isSuspendedForRecording = true
+        monitor.unregister()
+    }
+
+    // Keeps any conflictMessage set by updateShortcut intact.
+    func resumeHotKey() {
+        guard isSuspendedForRecording else { return }
+        isSuspendedForRecording = false
+        isRegistered = monitor.register(shortcut) == noErr
     }
 
     func reportCaptureResult(_ result: ShortcutCaptureResult) {
@@ -250,15 +266,19 @@ private final class GlobalHotKeyMonitor: @unchecked Sendable {
         self.action = action
     }
 
+    func unregister() {
+        if let hotKeyReference {
+            UnregisterEventHotKey(hotKeyReference)
+            self.hotKeyReference = nil
+        }
+    }
+
     func register(_ shortcut: GlobalShortcut) -> OSStatus {
         guard eventHandlerStatus == noErr else {
             return eventHandlerStatus
         }
 
-        if let hotKeyReference {
-            UnregisterEventHotKey(hotKeyReference)
-            self.hotKeyReference = nil
-        }
+        unregister()
 
         let hotKeyID = EventHotKeyID(
             signature: Self.signature,

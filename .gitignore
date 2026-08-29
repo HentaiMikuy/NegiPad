@@ -6,3 +6,6 @@
 DerivedData/
 xcuserdata/
 *.xcuserstate
+
+# AI tool local state
+.omo/

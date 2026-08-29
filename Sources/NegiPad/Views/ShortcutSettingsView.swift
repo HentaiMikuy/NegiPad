@@ -30,7 +30,14 @@ struct ShortcutSettingsView: View {
 
                             ShortcutRecorderView(
                                 shortcut: settings.shortcut,
-                                onCapture: settings.reportCaptureResult
+                                onCapture: settings.reportCaptureResult,
+                                onRecordingStateChange: { recording in
+                                    if recording {
+                                        settings.suspendHotKey()
+                                    } else {
+                                        settings.resumeHotKey()
+                                    }
+                                }
                             )
                             .frame(width: 180, height: 30)
                         }
@@ -98,22 +105,26 @@ struct ShortcutSettingsView: View {
 private struct ShortcutRecorderView: NSViewRepresentable {
     let shortcut: GlobalShortcut
     let onCapture: (ShortcutCaptureResult) -> Void
+    let onRecordingStateChange: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCapture: onCapture)
+        Coordinator(onCapture: onCapture, onRecordingStateChange: onRecordingStateChange)
     }
 
     func makeNSView(context: Context) -> ShortcutRecorderButton {
         let button = ShortcutRecorderButton()
         button.shortcut = shortcut
         button.onCapture = context.coordinator.onCapture
+        button.onRecordingStateChange = context.coordinator.onRecordingStateChange
         button.updateTitle()
         return button
     }
 
     func updateNSView(_ button: ShortcutRecorderButton, context: Context) {
         context.coordinator.onCapture = onCapture
+        context.coordinator.onRecordingStateChange = onRecordingStateChange
         button.onCapture = context.coordinator.onCapture
+        button.onRecordingStateChange = context.coordinator.onRecordingStateChange
         guard !button.isRecording else { return }
         button.shortcut = shortcut
         button.updateTitle()
@@ -121,9 +132,14 @@ private struct ShortcutRecorderView: NSViewRepresentable {
 
     final class Coordinator {
         var onCapture: (ShortcutCaptureResult) -> Void
+        var onRecordingStateChange: (Bool) -> Void
 
-        init(onCapture: @escaping (ShortcutCaptureResult) -> Void) {
+        init(
+            onCapture: @escaping (ShortcutCaptureResult) -> Void,
+            onRecordingStateChange: @escaping (Bool) -> Void
+        ) {
             self.onCapture = onCapture
+            self.onRecordingStateChange = onRecordingStateChange
         }
     }
 }
@@ -131,7 +147,16 @@ private struct ShortcutRecorderView: NSViewRepresentable {
 private final class ShortcutRecorderButton: NSButton {
     var shortcut = GlobalShortcut.default
     var onCapture: ((ShortcutCaptureResult) -> Void)?
+    var onRecordingStateChange: ((Bool) -> Void)?
     private(set) var isRecording = false
+    private var keyEventMonitor: Any?
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil, isRecording {
+            finishRecording()
+        }
+    }
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -155,12 +180,28 @@ private final class ShortcutRecorderButton: NSButton {
     }
 
     @objc private func beginRecording() {
+        guard !isRecording else { return }
         isRecording = true
         title = "请按下快捷键…"
+        onRecordingStateChange?(true)
         window?.makeFirstResponder(self)
+
+        // Local monitors run before menu key equivalents, so ⌘W/⌘, are
+        // captured as shortcuts instead of triggering menu items.
+        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.isRecording else { return event }
+            self.handleCapturedKey(event)
+            return nil
+        }
     }
 
     override func keyDown(with event: NSEvent) {
+        handleCapturedKey(event)
+    }
+
+    private func handleCapturedKey(_ event: NSEvent) {
+        guard isRecording else { return }
+
         if Int(event.keyCode) == kVK_Escape {
             finishRecording()
             return
@@ -191,7 +232,13 @@ private final class ShortcutRecorderButton: NSButton {
     }
 
     private func finishRecording() {
+        guard isRecording else { return }
         isRecording = false
+        if let keyEventMonitor {
+            NSEvent.removeMonitor(keyEventMonitor)
+            self.keyEventMonitor = nil
+        }
+        onRecordingStateChange?(false)
         updateTitle()
     }
 }
