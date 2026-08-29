@@ -3,11 +3,22 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let library = AppLibrary()
-    let launcherSession = LauncherSession()
-    let shortcutSettings = ShortcutSettings()
-    let launcherSettings = LauncherSettings()
-    let toolboxSettings = ToolboxSettings()
+    let library: AppLibrary
+    let launcherSession: LauncherSession
+    let shortcutSettings: ShortcutSettings
+    let launcherSettings: LauncherSettings
+    let toolboxSettings: ToolboxSettings
+
+    override init() {
+        // Must precede the settings objects: each of them reads UserDefaults
+        // as it initializes, and the rename changed the defaults domain.
+        LegacyDefaultsMigration.runIfNeeded()
+        self.library = AppLibrary()
+        self.launcherSession = LauncherSession()
+        self.shortcutSettings = ShortcutSettings()
+        self.launcherSettings = LauncherSettings()
+        self.toolboxSettings = ToolboxSettings()
+    }
 
     private var launcherSize: NSSize {
         NSSize(
@@ -182,9 +193,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentViewController = NSHostingController(rootView: rootView)
         window.minSize = NSSize(width: 820, height: 560)
         window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("AppTileDemo.ManagerWindow")
+        window.setFrameAutosaveName("NegiPad.ManagerWindow")
 
-        if !window.setFrameUsingName("AppTileDemo.ManagerWindow") {
+        if !window.setFrameUsingName("NegiPad.ManagerWindow") {
             window.center()
         }
 

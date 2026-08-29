@@ -14,7 +14,7 @@ final class ToolboxSettings: ObservableObject {
         }
     }
 
-    private static let calculatorEnabledKey = "AppTileDemo.Toolbox.CalculatorEnabled"
+    private static let calculatorEnabledKey = "NegiPad.Toolbox.CalculatorEnabled"
 
     init() {
         // Enabled out of the box so the tool is discoverable; the stored

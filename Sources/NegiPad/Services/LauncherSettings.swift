@@ -104,10 +104,10 @@ final class LauncherSettings: ObservableObject {
 
     private var isSyncingLaunchAtLogin = false
 
-    private static let browsingModeKey = "AppTileDemo.LauncherBrowsingMode"
-    private static let pagingWheelBehaviorKey = "AppTileDemo.PagingWheelBehavior"
-    private static let panelWidthKey = "AppTileDemo.LauncherPanelWidth"
-    private static let panelHeightKey = "AppTileDemo.LauncherPanelHeight"
+    private static let browsingModeKey = "NegiPad.LauncherBrowsingMode"
+    private static let pagingWheelBehaviorKey = "NegiPad.PagingWheelBehavior"
+    private static let panelWidthKey = "NegiPad.LauncherPanelWidth"
+    private static let panelHeightKey = "NegiPad.LauncherPanelHeight"
 
     var panelSize: CGSize {
         CGSize(width: panelWidth, height: panelHeight)

@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A00000000000000000000040"
-               BuildableName = "AppTileDemo.app"
-               BlueprintName = "AppTileDemo"
-               ReferencedContainer = "container:AppTileDemo.xcodeproj">
+               BuildableName = "NegiPad.app"
+               BlueprintName = "NegiPad"
+               ReferencedContainer = "container:NegiPad.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A00000000000000000000040"
-            BuildableName = "AppTileDemo.app"
-            BlueprintName = "AppTileDemo"
-            ReferencedContainer = "container:AppTileDemo.xcodeproj">
+            BuildableName = "NegiPad.app"
+            BlueprintName = "NegiPad"
+            ReferencedContainer = "container:NegiPad.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A00000000000000000000040"
-            BuildableName = "AppTileDemo.app"
-            BlueprintName = "AppTileDemo"
-            ReferencedContainer = "container:AppTileDemo.xcodeproj">
+            BuildableName = "NegiPad.app"
+            BlueprintName = "NegiPad"
+            ReferencedContainer = "container:NegiPad.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

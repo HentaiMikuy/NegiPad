@@ -4,7 +4,7 @@ import Foundation
 
 final class ApplicationDirectoryMonitor: @unchecked Sendable {
     private let queue = DispatchQueue(
-        label: "AppTileDemo.ApplicationDirectoryMonitor",
+        label: "NegiPad.ApplicationDirectoryMonitor",
         qos: .utility
     )
     private let eventMask: DispatchSource.FileSystemEvent = [

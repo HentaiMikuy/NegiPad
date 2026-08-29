@@ -88,6 +88,6 @@ final class SystemAppIconCache {
 
 extension Notification.Name {
     static let appIconsShouldReload = Notification.Name(
-        "AppTileDemo.appIconsShouldReload"
+        "NegiPad.appIconsShouldReload"
     )
 }

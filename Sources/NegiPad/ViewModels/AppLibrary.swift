@@ -21,7 +21,7 @@ final class AppLibrary: ObservableObject {
     @Published private(set) var isLoading = false
     @Published var lastError: String?
 
-    private let preferencesKey = "AppTileDemo.Preferences"
+    private let preferencesKey = "NegiPad.Preferences"
     private let maxUndoDepth = 30
     private var appsByID: [String: AppItem] = [:]
     private var orderIndex: [String: Int] = [:]

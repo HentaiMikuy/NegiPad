@@ -21,7 +21,7 @@ struct GeneralSettingsView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("开机自启")
                                     .font(.headline)
-                                Text("登录 macOS 后自动启动 AppTileDemo。")
+                                Text("登录 macOS 后自动启动 NegiPad。")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

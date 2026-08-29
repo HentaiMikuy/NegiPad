@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A00000000000000000000020 /* AppTileDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* AppTileDemoApp.swift */; };
+		A00000000000000000000020 /* NegiPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* NegiPadApp.swift */; };
 		A00000000000000000000021 /* AppCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* AppCategory.swift */; };
 		A00000000000000000000022 /* AppItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* AppItem.swift */; };
 		A00000000000000000000023 /* AppScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* AppScanner.swift */; };
@@ -33,11 +33,12 @@
 		B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* ToolboxSettingsView.swift */; };
 		B00000000000000000000028 /* SearchKeywordGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* SearchKeywordGroup.swift */; };
 		B00000000000000000000029 /* KeywordSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* KeywordSettingsView.swift */; };
+		B0000000000000000000002A /* LegacyDefaultsMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* LegacyDefaultsMigration.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A00000000000000000000009 /* AppTileDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppTileDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A00000000000000000000010 /* AppTileDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTileDemoApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000009 /* NegiPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NegiPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000010 /* NegiPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NegiPadApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000011 /* AppCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategory.swift; sourceTree = "<group>"; };
 		A00000000000000000000012 /* AppItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppItem.swift; sourceTree = "<group>"; };
 		A00000000000000000000013 /* AppScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScanner.swift; sourceTree = "<group>"; };
@@ -63,6 +64,7 @@
 		B00000000000000000000017 /* ToolboxSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolboxSettingsView.swift; sourceTree = "<group>"; };
 		B00000000000000000000018 /* SearchKeywordGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeywordGroup.swift; sourceTree = "<group>"; };
 		B00000000000000000000019 /* KeywordSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeywordSettingsView.swift; sourceTree = "<group>"; };
+		B0000000000000000000001A /* LegacyDefaultsMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyDefaultsMigration.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,7 +89,7 @@
 		A00000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000009 /* AppTileDemo.app */,
+				A00000000000000000000009 /* NegiPad.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,15 +97,15 @@
 		A00000000000000000000004 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000010 /* AppTileDemoApp.swift */,
+				A00000000000000000000010 /* NegiPadApp.swift */,
 				A00000000000000000000017 /* AppDelegate.swift */,
 				A00000000000000000000005 /* Models */,
 				A00000000000000000000006 /* Services */,
 				A00000000000000000000007 /* ViewModels */,
 				A00000000000000000000008 /* Views */,
 			);
-			name = AppTileDemo;
-			path = Sources/AppTileDemo;
+			name = NegiPad;
+			path = Sources/NegiPad;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000005 /* Models */ = {
@@ -129,6 +131,7 @@
 				B00000000000000000000014 /* AppSearchEngine.swift */,
 				B00000000000000000000015 /* CalculatorEngine.swift */,
 				B00000000000000000000016 /* ToolboxSettings.swift */,
+				B0000000000000000000001A /* LegacyDefaultsMigration.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -161,9 +164,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A00000000000000000000040 /* AppTileDemo */ = {
+		A00000000000000000000040 /* NegiPad */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A00000000000000000000051 /* Build configuration list for PBXNativeTarget "AppTileDemo" */;
+			buildConfigurationList = A00000000000000000000051 /* Build configuration list for PBXNativeTarget "NegiPad" */;
 			buildPhases = (
 				A00000000000000000000030 /* Sources */,
 				A00000000000000000000031 /* Frameworks */,
@@ -173,9 +176,9 @@
 			);
 			dependencies = (
 			);
-			name = AppTileDemo;
-			productName = AppTileDemo;
-			productReference = A00000000000000000000009 /* AppTileDemo.app */;
+			name = NegiPad;
+			productName = NegiPad;
+			productReference = A00000000000000000000009 /* NegiPad.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -193,7 +196,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A00000000000000000000050 /* Build configuration list for PBXProject "AppTileDemo" */;
+			buildConfigurationList = A00000000000000000000050 /* Build configuration list for PBXProject "NegiPad" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -207,7 +210,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A00000000000000000000040 /* AppTileDemo */,
+				A00000000000000000000040 /* NegiPad */,
 			);
 		};
 /* End PBXProject section */
@@ -227,7 +230,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A00000000000000000000020 /* AppTileDemoApp.swift in Sources */,
+				A00000000000000000000020 /* NegiPadApp.swift in Sources */,
 				A00000000000000000000021 /* AppCategory.swift in Sources */,
 				A00000000000000000000022 /* AppItem.swift in Sources */,
 				A00000000000000000000023 /* AppScanner.swift in Sources */,
@@ -253,6 +256,7 @@
 				B00000000000000000000027 /* ToolboxSettingsView.swift in Sources */,
 				B00000000000000000000028 /* SearchKeywordGroup.swift in Sources */,
 				B00000000000000000000029 /* KeywordSettingsView.swift in Sources */,
+				B0000000000000000000002A /* LegacyDefaultsMigration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,7 +386,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "应用磁贴";
+				INFOPLIST_KEY_CFBundleDisplayName = "葱启动器";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -391,7 +395,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.konomip.AppTileDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.konomip.NegiPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -409,7 +413,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "应用磁贴";
+				INFOPLIST_KEY_CFBundleDisplayName = "葱启动器";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -418,7 +422,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.konomip.AppTileDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.konomip.NegiPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -430,7 +434,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A00000000000000000000050 /* Build configuration list for PBXProject "AppTileDemo" */ = {
+		A00000000000000000000050 /* Build configuration list for PBXProject "NegiPad" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A00000000000000000000060 /* Debug */,
@@ -439,7 +443,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A00000000000000000000051 /* Build configuration list for PBXNativeTarget "AppTileDemo" */ = {
+		A00000000000000000000051 /* Build configuration list for PBXNativeTarget "NegiPad" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A00000000000000000000062 /* Debug */,

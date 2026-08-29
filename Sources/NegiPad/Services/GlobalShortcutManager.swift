@@ -107,7 +107,7 @@ final class ShortcutSettings: ObservableObject {
     @Published private(set) var conflictMessage: String?
     @Published var recorderMessage: String?
 
-    private let preferencesKey = "AppTileDemo.GlobalShortcut"
+    private let preferencesKey = "NegiPad.GlobalShortcut"
     private let monitor = GlobalHotKeyMonitor()
 
     init() {
