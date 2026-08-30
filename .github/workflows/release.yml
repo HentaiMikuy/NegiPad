@@ -1,0 +1,59 @@
+name: Release
+
+# 推送 v* 格式的 tag 时触发，例如：git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # tag v1.2.3 -> VERSION=1.2.3，注入应用版本号
+      - name: Compute version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build (universal, ad-hoc signed)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NegiPad.xcodeproj \
+            -scheme NegiPad \
+            -configuration Release \
+            -derivedDataPath .build \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=YES \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS="arm64 x86_64" \
+            build | xcbeautify
+
+      - name: Package
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            .build/Build/Products/Release/NegiPad.app \
+            "NegiPad-${GITHUB_REF_NAME}.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: NegiPad-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          body: |
+            > [!NOTE]
+            > 本应用为临时签名（ad-hoc）且未经公证，首次打开如被 Gatekeeper 拦截：
+            > 右键点击 `NegiPad.app` →「打开」，或执行
+            > `xattr -dr com.apple.quarantine /Applications/NegiPad.app`
