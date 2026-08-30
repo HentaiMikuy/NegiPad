@@ -15,14 +15,14 @@ concurrency:
 
 jobs:
   build-and-release:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # runner 默认 Xcode 16.4 类型检查会超时，改用镜像内置的 Xcode 26.3
+      # 旧工具链类型检查 LauncherView 会超时，显式使用与开发机一致的 Xcode 26.6
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       # tag v1.2.3 -> VERSION=1.2.3，注入应用版本号
       - name: Compute version from tag
