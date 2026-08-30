@@ -159,57 +159,8 @@ struct LauncherView: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                searchHeader
-                Divider().opacity(0.7)
-                if let calculation {
-                    CalculatorResultRow(
-                        result: calculation,
-                        showsCopied: calculatorShowsCopied,
-                        respondsToReturn: items.isEmpty,
-                        onCopy: { copyCalculationResult(calculation) }
-                    )
-                    Divider().opacity(0.7)
-                }
-                // The pager has no vertical scrolling, so it keeps the strip
-                // pinned here as a header; in vertical-scroll mode the strip
-                // lives inside the scroll view and scrolls away with the grid.
-                if showsRecentlyInstalledRow
-                    && launcherSettings.browsingMode == .horizontalPaging {
-                    recentlyInstalledRow
-                    Divider().opacity(0.7)
-                }
-                if !isCalculatorOnlyMode {
-                    resultContent
-                    Divider().opacity(0.7)
-                }
-                footer
-            }
-
-            if let openFolderID,
-               let folder = library.folder(withID: openFolderID) {
-                FolderOverlay(
-                    folder: folder,
-                    apps: library.apps(in: folder),
-                    panelSize: panelSize,
-                    beginsRenaming: folderStartsRenaming,
-                    onRename: { name in
-                        library.renameFolder(folder.id, to: name)
-                    },
-                    onRemove: { appID in
-                        guard library.removeApp(appID, fromFolder: folder.id) else {
-                            return
-                        }
-                        selectedID = appID
-                        closeFolder()
-                    },
-                    onLaunch: launch,
-                    onClose: {
-                        closeFolder()
-                    }
-                )
-                .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            }
+            mainContent
+            folderOverlay
         }
         .frame(width: panelSize.width, height: preferredPanelHeight)
         .background(.ultraThinMaterial)
@@ -308,6 +259,63 @@ struct LauncherView: View {
             guard openFolderID == nil else { return .ignored }
             moveSelection(by: -1)
             return .handled
+        }
+    }
+
+    private var mainContent: some View {
+        VStack(spacing: 0) {
+            searchHeader
+            Divider().opacity(0.7)
+            if let calculation {
+                CalculatorResultRow(
+                    result: calculation,
+                    showsCopied: calculatorShowsCopied,
+                    respondsToReturn: items.isEmpty,
+                    onCopy: { copyCalculationResult(calculation) }
+                )
+                Divider().opacity(0.7)
+            }
+            // The pager has no vertical scrolling, so it keeps the strip
+            // pinned here as a header; in vertical-scroll mode the strip
+            // lives inside the scroll view and scrolls away with the grid.
+            if showsRecentlyInstalledRow
+                && launcherSettings.browsingMode == .horizontalPaging {
+                recentlyInstalledRow
+                Divider().opacity(0.7)
+            }
+            if !isCalculatorOnlyMode {
+                resultContent
+                Divider().opacity(0.7)
+            }
+            footer
+        }
+    }
+
+    @ViewBuilder
+    private var folderOverlay: some View {
+        if let openFolderID,
+           let folder = library.folder(withID: openFolderID) {
+            FolderOverlay(
+                folder: folder,
+                apps: library.apps(in: folder),
+                panelSize: panelSize,
+                beginsRenaming: folderStartsRenaming,
+                onRename: { name in
+                    library.renameFolder(folder.id, to: name)
+                },
+                onRemove: { appID in
+                    guard library.removeApp(appID, fromFolder: folder.id) else {
+                        return
+                    }
+                    selectedID = appID
+                    closeFolder()
+                },
+                onLaunch: launch,
+                onClose: {
+                    closeFolder()
+                }
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
     }
 
